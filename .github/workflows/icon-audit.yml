@@ -11,7 +11,14 @@ on:
 jobs:
   audit-icon:
     name: Audit Icon Usage (pure-admin-thin-max-ts)
+    timeout-minutes: 10
+    concurrency:
+      group: icon-audit-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pure-admin-thin-max-ts
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,10 +36,7 @@ jobs:
           run_install: false
 
       - name: Install dependencies
-        working-directory: pure-admin-thin-max-ts
         run: pnpm install --frozen-lockfile
 
       - name: Run audit:icon
-        working-directory: pure-admin-thin-max-ts
         run: pnpm audit:icon
-
