@@ -1,0 +1,46 @@
+import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * Playwright 基础配置
+ * - 使用 Vite 开发服务器作为被测站点
+ * - 默认 baseURL 指向开发端口（.env.development -> VITE_PORT = 8848）
+ * - 仅启用 Chromium 项目，满足最小化的“图标渲染与交互”冒烟验证
+ * - 启用 trace/screenshot：失败时保留，CI 中会上传 HTML 报告与 trace 便于排查
+ */
+export default defineConfig({
+  testDir: "./tests",
+  /* 默认超时：单个测试 30s */
+  timeout: 30 * 1000,
+  /* 期望断言超时 */
+  expect: { timeout: 10 * 1000 },
+  /* 报告器：控制台列表 + HTML（CI 中由工作流采集为 Artifact） */
+  reporter: [["list"], ["html", { open: "never" }]],
+  /* 基础 URL，允许通过环境变量覆盖（如 CI 场景） */
+  use: {
+    baseURL: process.env.BASE_URL || "http://localhost:8848",
+    headless: true,
+    /*
+     * 失败调试辅助：
+     * - trace: retain-on-failure -> 仅失败时保留录制
+     * - screenshot: only-on-failure -> 仅失败时截图
+     * - video: retain-on-failure -> 仅失败时保留视频（如不需要可改为 'off' 降低 Artifact 体积）
+     */
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure"
+  },
+  /* 仅启用 Chromium */
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] }
+    }
+  ],
+  /* 本地运行时如已有 dev server 则复用，避免端口占用失败 */
+  webServer: {
+    command: "pnpm dev",
+    url: process.env.BASE_URL || "http://localhost:8848",
+    reuseExistingServer: true,
+    timeout: 60 * 1000
+  }
+});

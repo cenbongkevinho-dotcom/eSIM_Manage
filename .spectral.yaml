@@ -1,0 +1,137 @@
+extends:
+  - spectral:oas
+
+rules:
+  require-x-codeSamples-on-get:
+    description: GET endpoints must provide x-codeSamples example(s)
+    message: "GET endpoints should include x-codeSamples"
+    given: "$.paths.*.get['x-codeSamples']"
+    severity: warn
+    then:
+      function: truthy
+
+  require-429-retry-after-header:
+    description: 429 responses must include Retry-After header
+    message: "429 responses should define headers.Retry-After"
+    given: "$.paths.*.*.responses['429'].headers['Retry-After']"
+    severity: error
+    then:
+      function: truthy
+
+  require-json-content-on-error-status:
+    description: Error responses should define application/json content
+    message: "Error responses (4xx/5xx) should define content.application/json"
+    given: "$.paths.*.*.responses['400','401','403','404','409','422','429','500','503'].content['application/json']"
+    severity: warn
+    then:
+      function: truthy
+
+  require-errorresponse-on-error-status:
+    description: Error responses must reference the unified ErrorResponse model
+    message: "Error responses should reference #/components/schemas/ErrorResponse"
+    given: "$.paths.*.*.responses['400','401','403','404','409','422','429','500','503'].content.application/json.schema.$ref"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        match: "^#/components/schemas/ErrorResponse$"
+
+  require-externalDocs-for-project-management:
+    description: Project management endpoints should link externalDocs to 错误码字典.md
+    message: "Endpoints should include externalDocs pointing to 错误码字典.md"
+    given: "$.paths['/boards','/boards/{id}/columns','/tasks','/worklogs','/sprints','/sprints/{id}/burndown','/reports'].*.externalDocs.url"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "(?:错误码字典\\.md|%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8\\.md)(?:$|[#?])"
+
+  require-idempotency-key-on-post:
+    description: POST operations should include Idempotency-Key header parameter
+    message: "POST operations should define Idempotency-Key in parameters"
+    given: "$.paths.*.post.parameters"
+    severity: warn
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                const: Idempotency-Key
+
+  require-tags-on-operation:
+    description: All operations should define tags
+    message: "Operations should include tags"
+    given: "$.paths.*.*.tags"
+    severity: warn
+    then:
+      function: truthy
+
+  require-summary-on-operation:
+    description: All operations should define summary
+    message: "Operations should include summary"
+    given: "$.paths.*.*.summary"
+    severity: warn
+    then:
+      function: truthy
+
+  require-operationId-on-operation:
+    description: All operations should define operationId
+    message: "Operations should include operationId"
+    given: "$.paths.*.*.operationId"
+    severity: warn
+    then:
+      function: truthy
+
+  require-x-correlation-id-on-2xx:
+    description: 2xx responses should include X-Correlation-ID header
+    message: "2xx responses should define headers.X-Correlation-ID"
+    given: "$.paths.*.*.responses['200','201'].headers['X-Correlation-ID']"
+    severity: warn
+    then:
+      function: truthy
+
+  require-401-on-secured:
+    description: Secured operations must define 401 response
+    message: "Secured operations should define 401 response"
+    given: "$.paths.*.*[?(@.security)].responses['401']"
+    severity: error
+    then:
+      function: truthy
+
+  require-403-on-secured:
+    description: Secured operations must define 403 response
+    message: "Secured operations should define 403 response"
+    given: "$.paths.*.*[?(@.security)].responses['403']"
+    severity: error
+    then:
+      function: truthy
+
+  require-x-ratelimit-limit-on-429:
+    description: 429 responses should include X-RateLimit-Limit header
+    message: "429 responses should define headers.X-RateLimit-Limit"
+    given: "$.paths.*.*.responses['429'].headers['X-RateLimit-Limit']"
+    severity: warn
+    then:
+      function: truthy
+
+  require-x-ratelimit-remaining-on-429:
+    description: 429 responses should include X-RateLimit-Remaining header
+    message: "429 responses should define headers.X-RateLimit-Remaining"
+    given: "$.paths.*.*.responses['429'].headers['X-RateLimit-Remaining']"
+    severity: warn
+    then:
+      function: truthy
+
+  require-x-ratelimit-reset-on-429:
+    description: 429 responses should include X-RateLimit-Reset header
+    message: "429 responses should define headers.X-RateLimit-Reset"
+    given: "$.paths.*.*.responses['429'].headers['X-RateLimit-Reset']"
+    severity: warn
+    then:
+      function: truthy

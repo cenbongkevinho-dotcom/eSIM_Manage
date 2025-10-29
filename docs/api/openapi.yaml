@@ -1,0 +1,4294 @@
+openapi: 3.1.0
+info:
+  title: eSIM_Manage API
+  version: 0.1.0
+  description: |
+    初版开放接口定义，涵盖运营商接入、套餐/流量池、订单与订阅、财务与回调。
+
+    合规与风控说明（Market Crawl）：
+    - 抓取任务严格遵守目标站点的 robots.txt 及平台服务条款（TOS）；仅抓取公开可访问的数据，不绕过登录/付费墙/防爬机制。
+    - 内置频率限制与并发控制，所有相关端点在超限时返回 429 Too Many Requests，并附带 X-RateLimit-* 与 Retry-After 响应头用于客户端退避与重试。
+    - 数据来源与用途合规：仅采集商品/价格等公开业务数据，杜绝采集个人敏感信息（PII）与受保护内容；对来源进行记录与审计，支持告警与封禁流程。
+    - 风控处置：发现异常抓取（例如高频访问、UA 伪装、来源异常）将自动告警并暂停作业，必要时进入封禁名单；请在收到 429 与告警后降低抓取频率或联系平台管理员。
+
+    内部使用说明：本项目为企业内部项目，不对外公开，仅用于内网接口与契约测试。
+  contact:
+    name: API Platform Team
+    url: https://docs.esim-manage.example.com/contact
+    email: api-platform@esim-manage.example.com
+  termsOfService: https://docs.esim-manage.example.com/terms-of-service
+  license:
+    name: Proprietary
+    url: https://docs.esim-manage.example.com/license
+servers:
+  - url: https://api.esim-manage.example.com
+    description: Production
+  - url: https://staging.api.esim-manage.example.com
+    description: Staging
+security:
+  - oauth2: []
+tags:
+  - name: operators
+    description: 运营商相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/operators
+  - name: plans
+    description: 套餐管理相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/plans
+  - name: pools
+    description: 流量池相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/pools
+  - name: customers
+    description: 客户相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/customers
+  - name: orders
+    description: 订单相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/orders
+  - name: pricing
+    description: 定价策略相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/pricing
+  - name: market
+    description: 市场数据抓取相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/market
+  - name: agile
+    description: 看板/任务/工时/迭代与报表等敏捷相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/agile
+  - name: crm
+    description: 外部 CRM 集成与绑定相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/crm
+  - name: webhooks
+    description: 外部平台回调与事件通知相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/webhooks
+  - name: files
+    description: 附件与文件上传相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/files
+  - name: billing
+    description: 支付与结算相关操作
+    externalDocs:
+      url: https://docs.esim-manage.example.com/billing
+paths:
+  /operators:
+    get:
+      summary: 列出运营商
+      description: 返回已接入的运营商列表（支持平台级查询）。
+      tags: [operators]
+      operationId: listOperators
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List operators
+          source: |
+            curl "https://api.esim-manage.example.com/operators" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, description: 运营商唯一标识 }
+                    name: { type: string, description: 运营商名称 }
+                    code: { type: string, description: 运营商缩写或代号 }
+                    country: { type: string, description: ISO 国家码, maxLength: 2 }
+                    status: { type: string, description: 当前状态, enum: [active, inactive] }
+              examples:
+                default:
+                  summary: 示例 - 运营商列表
+                  value:
+                    - id: op_cn_cmcc
+                      name: China Mobile
+                      code: CMCC
+                      country: CN
+                      status: active
+                    - id: op_us_att
+                      name: AT&T
+                      code: ATT
+                      country: US
+                      status: active
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 新增运营商
+      description: 创建新的运营商记录（包含基本信息与接入配置）。
+      tags: [operators]
+      operationId: createOperator
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OperatorCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create operator
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/operators" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Carrier A","country":"CN","status":"active"}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /operators/{id}:
+    get:
+      summary: 获取运营商详情
+      description: 返回指定运营商的基础信息与接入状态。
+      tags: [operators]
+      operationId: getOperator
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: Get operator
+          source: |
+            curl "https://api.esim-manage.example.com/operators/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: 更新运营商
+      description: 更新指定运营商的基础信息。
+      tags: [operators]
+      operationId: updateOperator
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OperatorUpdate"
+      x-codeSamples:
+        - lang: cURL
+          label: Update operator
+          source: |
+            curl -X PUT "https://api.esim-manage.example.com/operators/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"status":"active"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /plans:
+    get:
+      summary: 列出套餐/产品
+      description: 返回平台中的套餐/产品列表。
+      tags: [plans]
+      operationId: listPlans
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List plans
+          source: |
+            curl "https://api.esim-manage.example.com/plans" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 新增套餐/产品
+      description: 创建新的套餐/产品。
+      tags: [plans]
+      operationId: createPlan
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create plan
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/plans" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Global 10GB","price":49.9,"currency":"USD"}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pools:
+    get:
+      summary: 列出流量池
+      description: 返回平台中的流量池列表。
+      tags: [pools]
+      operationId: listPools
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List pools
+          source: |
+            curl "https://api.esim-manage.example.com/pools" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建流量池
+      description: 创建新的流量池。
+      tags: [pools]
+      operationId: createPool
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PoolCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create pool
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pools" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Main Pool","capacityGb":1000,"region":"APAC"}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /customers:
+    get:
+      summary: 列出客户
+      description: 返回客户列表（支持分页与排序）。
+      tags: [customers]
+      operationId: listCustomers
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List customers
+          source: |
+            curl "https://api.esim-manage.example.com/customers?page=1&pageSize=20&sort=createdAt:desc" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 新建客户（B2B/B2C）
+      description: 创建客户（支持 B2B/B2C）。
+      tags: [customers]
+      operationId: createCustomer
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create customer
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/customers" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"type":"B2B","name":"Acme Corp","contact":{"email":"ops@acme.example"}}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders:
+    get:
+      summary: 列出订单
+      description: 返回订单列表。
+      tags: [orders]
+      operationId: listOrders
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List orders
+          source: |
+            curl "https://api.esim-manage.example.com/orders" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建订单
+      description: 创建订单。
+      tags: [orders]
+      operationId: createOrder
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create order
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/orders" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"customerId":"CUST-001","items":[{"planId":"PLAN-001","quantity":1}]}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict (重复请求或资源状态冲突)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /activation-codes:
+    get:
+      summary: 列出激活码
+      description: 返回激活码列表，包含关联的运营商、套餐、客户与数量等信息，支持分页与基本筛选。
+      operationId: listActivationCodes
+      tags: [operators]
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    operatorId: { type: string }
+                    planId: { type: string }
+                    customerId: { type: string }
+                    code: { type: string }
+                    status: { type: string, enum: [unused, used, expired] }
+                    createdAt: { type: string, format: date-time }
+              examples:
+                default:
+                  summary: 示例 - 激活码列表
+                  value:
+                    - id: ac_20251029_0001
+                      operatorId: op_cn_cmcc
+                      planId: plan_global_5gb_30d
+                      customerId: cus_001
+                      code: E123-4567-ABCD-XYZ0
+                      status: unused
+                      createdAt: 2025-10-29T08:25:00Z
+    post:
+      summary: 生成激活码
+      description: 生成激活码批次并关联指定的运营商、套餐与客户，支持幂等与请求追踪。
+      operationId: createActivationCodes
+      tags: [operators]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivationCodeCreate"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /subscriptions:
+    get:
+      summary: 查询订阅
+      description: 返回订阅列表，支持分页与筛选（按客户、套餐或状态）。
+      operationId: listSubscriptions
+      tags: [customers]
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    operatorId: { type: string }
+                    planId: { type: string }
+                    customerId: { type: string }
+                    msisdn: { type: string, description: 订阅号码 }
+                    iccid: { type: string, description: SIM 卡 ICCID }
+                    status: { type: string, enum: [active, inactive, cancelled] }
+                    createdAt: { type: string, format: date-time }
+                    expiresAt: { type: string, format: date-time }
+              examples:
+                default:
+                  summary: 示例 - 订阅列表
+                  value:
+                    - id: sub_0001
+                      operatorId: op_cn_cmcc
+                      planId: plan_global_5gb_30d
+                      customerId: cus_001
+                      msisdn: "+8613800138000"
+                      iccid: "8986012345678901234"
+                      status: active
+                      createdAt: 2025-10-01T00:00:00Z
+                      expiresAt: 2025-10-31T23:59:59Z
+    post:
+      summary: 创建订阅（与订单或激活码关联）
+      description: 基于订单或激活码创建订阅记录，并与指定套餐与设备进行关联，支持幂等处理。
+      operationId: createSubscription
+      tags: [customers]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionCreate"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /subscriptions/{id}:
+    get:
+      summary: 订阅详情
+      description: 获取指定订阅的详细信息，包括套餐、设备、状态与关联订单/激活码等。
+      operationId: getSubscription
+      tags: [customers]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200": { description: OK }
+    patch:
+      summary: 更新订阅状态（启用/停用/删除）
+      description: 更新订阅的状态（启用/停用/删除），并记录操作人与请求标识，确保幂等。
+      operationId: updateSubscription
+      tags: [customers]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPatch"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /billing/invoices:
+    get:
+      summary: 查询发票
+      description: 返回发票列表，支持分页与筛选（例如发票状态、关联客户或时间范围）。
+      operationId: listInvoices
+      tags: [billing]
+      responses:
+        "200": { description: OK }
+    post:
+      summary: 生成发票
+      description: 基于订单与用量生成新的发票记录，支持幂等与请求追踪。
+      operationId: createInvoice
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceCreate"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /billing/invoices/{id}:
+    get:
+      summary: 发票详情
+      description: 获取指定发票的详细信息，包括金额、税率、项目明细与当前状态。
+      operationId: getInvoice
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200": { description: OK }
+
+  /billing/invoices/{id}/reconcile:
+    post:
+      summary: 发票对账（运营商用量/账单/支付流水核对）
+      operationId: invoiceReconcile
+      description: 对发票进行对账处理，核对运营商用量、账单与支付流水，输出差异与调整建议。
+      tags: [billing]
+      security:
+        - oauth2:
+            - billing:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceReconcileRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Reconcile invoice
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/billing/invoices/{id}/reconcile" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"period":"2025-10","reconcileItems":[{"type":"usage","source":"operator","referenceId":"OP-2025-10","amount":123.45}]}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /billing/invoices/{id}/approve:
+    post:
+      summary: 发票审批
+      operationId: invoiceApprove
+      description: 提交发票审批流程，记录审批人、意见与状态变更。
+      tags: [billing]
+      security:
+        - oauth2:
+            - billing:write
+            - approvals:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceApprovalRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Approve invoice
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/billing/invoices/{id}/approve" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"approvedBy":"ops-user","comment":"Looks good"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /billing/invoices/{id}/sign:
+    post:
+      summary: 发票签章（电子签）
+      operationId: invoiceSign
+      description: 使用指定电子签服务为发票进行签章，生成具备法律效力的签章版。
+      tags: [billing]
+      security:
+        - oauth2:
+            - billing:write
+            - billing:sign
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceSignRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Sign invoice
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/billing/invoices/{id}/sign" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"signatureProvider":"example-sign","sealId":"seal-123"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /billing/invoices/{id}/pdf:
+    get:
+      summary: 下载发票 PDF（若已签章则返回签章版）
+      operationId: invoicePdf
+      description: 下载指定发票的 PDF 文件（若已签章则返回带电子签章的版本）。
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      x-codeSamples:
+        - lang: cURL
+          label: Download invoice PDF
+          source: |
+            curl -L "https://api.esim-manage.example.com/billing/invoices/{id}/pdf" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}" -o invoice.pdf
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "404": { description: Not Found }
+
+  /payments:
+    get:
+      summary: 列出支付记录
+      description: 返回支付记录列表，支持分页、排序与按发票、支付方式、状态以及收款确认状态筛选。
+      operationId: listPayments
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - in: query
+          name: invoiceId
+          schema: { type: string }
+        - in: query
+          name: method
+          schema: { type: string, enum: [paypal, alipay, wechatpay, bank] }
+        - in: query
+          name: status
+          schema:
+            { type: string, enum: [initiated, succeeded, failed, refunded] }
+        - in: query
+          name: receiptStatus
+          schema: { type: string, enum: [pending, confirmed, rejected] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Payment"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+    post:
+      summary: 支付发票
+      operationId: createPayment
+      description: 创建支付请求或记录发票支付凭证，支持多种支付渠道与幂等处理。
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Create payment
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/payments" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"invoiceId":"inv_123","amount":199.00,"currency":"CNY","method":"wechatpay","proofUrls":["https://files.example.com/payments/inv_123_1.png"],"payerBillNo":"BN-2025-0001"}'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /payments/{id}:
+    get:
+      summary: 获取支付详情
+      description: 获取指定支付记录的详情信息，包括金额、支付渠道、状态与时间戳。
+      operationId: getPayment
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+    patch:
+      summary: 更新支付记录（收款确认/备注）
+      description: 更新指定支付记录的收款确认状态、备注或其他可编辑字段，确保幂等与可追踪。
+      operationId: updatePayment
+      tags: [billing]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /suppliers:
+    get:
+      summary: 列出供应商（运营商/渠道伙伴/第三方）
+      description: 返回供应商列表，支持分页、排序与基础筛选（例如类型/状态）。
+      operationId: listSuppliers
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200": { description: OK }
+    post:
+      summary: 新增供应商
+      description: 创建新的供应商记录，用于后续订单/结算与合作关系管理。
+      operationId: createSupplier
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierCreate"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /suppliers/{id}:
+    get:
+      summary: 获取供应商详情
+      description: 根据唯一 ID 获取指定供应商的详细信息。
+      operationId: getSupplier
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200": { description: OK }
+    put:
+      summary: 更新供应商
+      description: 更新指定供应商的基本信息（例如名称、地址、结算配置等）。
+      operationId: updateSupplier
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierUpdate"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /crm/contacts:
+    get:
+      summary: 列出联系人（客户/供应商）
+      description: 返回联系人列表，支持分页与排序，并可按实体类型（客户/供应商）筛选。
+      operationId: listContacts
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/EntityTypeFilter"
+      responses:
+        "200": { description: OK }
+    post:
+      summary: 新增联系人
+      description: 创建联系人记录，支持客户或供应商实体类型。
+      operationId: createContact
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactCreate"
+      responses:
+        "201": { description: Created }
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /crm/contacts/{id}:
+    get:
+      summary: 获取联系人详情
+      description: 根据联系人 ID 返回详细信息。
+      operationId: getContact
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200": { description: OK }
+    put:
+      summary: 更新联系人
+      description: 更新联系人基本信息与扩展字段。
+      operationId: updateContact
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactUpdate"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /integrations/crm:
+    post:
+      summary: 配置外部 CRM 接入（OAuth2 客户端、字段映射与策略）
+      description: 配置外部 CRM 的接入（如 Salesforce/HubSpot/Zoho），包含 OAuth2 客户端、字段映射与同步/冲突策略。
+      operationId: configureCrmIntegration
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrmIntegrationConfig"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /integrations/crm/sync:
+    post:
+      summary: 触发 CRM 同步（单向/双向、增量/全量）
+      description: 发起与外部 CRM 的同步任务，支持单向/双向与增量/全量模式，返回作业受理状态（202）。
+      operationId: triggerCrmSync
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrmSyncRequest"
+      responses:
+        "202":
+          description: Accepted
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /integrations/crm/sync/{jobId}:
+    get:
+      summary: 查询 CRM 同步作业状态
+      description: 根据作业 ID 返回当前同步任务的进度、结果与错误信息。
+      operationId: getCrmSyncJobStatus
+      tags: [crm]
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrmSyncStatus"
+
+  /integrations/crm/sync/jobs:
+    get:
+      summary: 列出近期 CRM 同步作业
+      description: 返回近期触发的 CRM 同步作业的分页列表，支持按状态过滤。
+      operationId: listCrmSyncJobs
+      tags: [crm]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [pending, running, succeeded, failed] }
+      responses:
+        "200": { description: OK }
+
+  /crm/bindings:
+    get:
+      summary: 列出外部 CRM 绑定关系
+      operationId: listExternalCrmBindings
+      description: 返回与外部 CRM（如 Salesforce/HubSpot/Zoho）建立的实体绑定关系列表，支持后续同步与冲突处理。
+      tags: [crm]
+      x-codeSamples:
+        - lang: cURL
+          label: List external CRM bindings
+          source: |
+            curl "https://api.esim-manage.example.com/crm/bindings" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExternalCrmBinding"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+    post:
+      summary: 新增外部 CRM 绑定关系
+      operationId: createExternalCrmBinding
+      description: 创建与外部 CRM 的实体绑定关系，用于后续双向或单向同步，以及字段级冲突策略。
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExternalCrmBindingCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create external CRM binding
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/crm/bindings" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"system":"salesforce","entityType":"customer","entityId":"cust_123","externalId":"sf_456","syncMode":"two_way","conflictPolicy":"field_level","fieldMappings":{"name":"Account.Name"}}'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalCrmBinding"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /crm/bindings/{id}:
+    get:
+      summary: 获取外部 CRM 绑定详情
+      operationId: getExternalCrmBinding
+      description: 根据绑定 ID 返回绑定详情与当前同步状态，用于排查与运维。
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      x-codeSamples:
+        - lang: cURL
+          label: Get external CRM binding
+          source: |
+            curl "https://api.esim-manage.example.com/crm/bindings/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalCrmBinding"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "404": { description: Not Found }
+    put:
+      summary: 更新外部 CRM 绑定
+      operationId: updateExternalCrmBinding
+      description: 更新绑定的同步模式、冲突策略或字段映射，返回最新绑定状态。
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExternalCrmBindingUpdate"
+      x-codeSamples:
+        - lang: cURL
+          label: Update external CRM binding
+          source: |
+            curl -X PUT "https://api.esim-manage.example.com/crm/bindings/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"syncMode":"one_way","conflictPolicy":"platform_first","fieldMappings":{"email":"Contact.Email"}}'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalCrmBinding"
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: 删除外部 CRM 绑定
+      operationId: deleteExternalCrmBinding
+      description: 删除与外部 CRM 的绑定关系，后续将停止同步并清理相关计划任务。
+      tags: [crm]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: Delete external CRM binding
+          source: |
+            curl -X DELETE "https://api.esim-manage.example.com/crm/bindings/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "204":
+          description: No Content
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+
+  /webhooks/smdpplus:
+    post:
+      summary: SM-DP+ 回调接收
+      description: 接收 SM-DP+ 平台回调，进行签名与时间戳校验，更新 eSIM 配置与启用状态。
+      operationId: receiveSmdpplusWebhook
+      tags: [webhooks]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/WebhookSignatureHeader"
+        - $ref: "#/components/parameters/WebhookTimestampHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmdpplusWebhookEvent"
+      responses:
+        "200": { description: OK }
+
+  /webhooks/payments/paypal:
+    post:
+      summary: PayPal 支付回调（Webhook）
+      description: 接收 PayPal Webhook 并更新支付状态，要求验签与时间戳校验。
+      security: []
+      operationId: receivePaypalWebhook
+      tags: [webhooks]
+      parameters:
+        - $ref: "#/components/parameters/PayPalTransmissionId"
+        - $ref: "#/components/parameters/PayPalTransmissionTime"
+        - $ref: "#/components/parameters/PayPalTransmissionSig"
+        - $ref: "#/components/parameters/PayPalCertUrl"
+        - $ref: "#/components/parameters/PayPalAuthAlgo"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayPalWebhookEvent"
+      x-codeSamples:
+        - lang: cURL
+          label: PayPal webhook sample
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/webhooks/payments/paypal" \
+              -H "PayPal-Transmission-Id: 123456789" \
+              -H "PayPal-Transmission-Time: 2025-10-29T10:00:00Z" \
+              -H "PayPal-Transmission-Sig: abcdef" \
+              -H "Content-Type: application/json" \
+              -d '{"id":"WH-123","event_type":"PAYMENT.SALE.COMPLETED","webhook_id":"WHID-001","resource_type":"sale","resource":{"id":"sale_001","state":"completed"}}'
+      responses:
+        "200":
+          description: Received
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+        "401":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhooks/payments/wechatpay:
+    post:
+      summary: 微信支付回调（V3）
+      description: 接收微信支付 V3 回调，资源字段采用 AEAD 加密负载，需平台证书校验与解密。
+      security: []
+      operationId: receiveWechatpayWebhook
+      tags: [webhooks]
+      parameters:
+        - $ref: "#/components/parameters/WechatpayTimestamp"
+        - $ref: "#/components/parameters/WechatpayNonce"
+        - $ref: "#/components/parameters/WechatpaySignature"
+        - $ref: "#/components/parameters/WechatpaySerial"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WechatpayWebhookEvent"
+      x-codeSamples:
+        - lang: cURL
+          label: Wechatpay webhook sample
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/webhooks/payments/wechatpay" \
+              -H "Wechatpay-Timestamp: 1730196000" \
+              -H "Wechatpay-Nonce: NpQ0x7" \
+              -H "Wechatpay-Signature: xxx" \
+              -H "Content-Type: application/json" \
+              -d '{"id":"4200000","create_time":"2025-10-29T10:00:00+08:00","event_type":"TRANSACTION.SUCCESS","resource":{"algorithm":"AEAD_AES_256_GCM","ciphertext":"...","nonce":"abc","associated_data":"payment"}}'
+      responses:
+        "200":
+          description: Received
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+        "401":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhooks/payments/alipay:
+    post:
+      summary: 支付宝支付回调
+      description: 接收支付宝回调，验签与 trade_status 状态映射到支付记录。
+      security: []
+      operationId: receiveAlipayWebhook
+      tags: [webhooks]
+      parameters:
+        - $ref: "#/components/parameters/AlipaySignature"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlipayWebhookEvent"
+      x-codeSamples:
+        - lang: cURL
+          label: Alipay webhook sample
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/webhooks/payments/alipay" \
+              -H "Content-Type: application/json" \
+              -H "X-Alipay-Signature: signxxx" \
+              -d '{"out_trade_no":"inv_123","trade_no":"20251029001","trade_status":"TRADE_SUCCESS","total_amount":"199.00","buyer_id":"2088***","gmt_payment":"2025-10-29 18:00:00","sign":"xxx","sign_type":"RSA2"}'
+      responses:
+        "200":
+          description: Received
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+        "401":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /attachments:
+    post:
+      summary: 上传附件（用于支付凭证等场景）
+      operationId: uploadAttachment
+      description: 通过 multipart/form-data 上传附件，支持 png/jpg/jpeg/pdf。默认单文件大小上限 10MB（超限返回 413）。
+      tags: [files]
+      security:
+        - oauth2:
+            - attachments:write
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 待上传文件内容
+                filename:
+                  type: string
+                  description: 文件名（可选，未提供时以上传文件原名为准）
+                contentType:
+                  type: string
+                  description: MIME 类型（可选，未提供时由服务端检测）
+                purpose:
+                  type: string
+                  description: 用途（例如 payment_proof）
+                  enum: [payment_proof, general]
+            encoding:
+              file:
+                contentType: application/octet-stream
+      x-codeSamples:
+        - lang: cURL
+          label: Upload attachment
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/attachments" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: multipart/form-data" \
+              -F "file=@/path/to/proof.png" \
+              -F "purpose=payment_proof"
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "413": { description: Payload Too Large }
+
+  /boards:
+    get:
+      summary: 列出看板
+      operationId: listBoards
+      description: 返回当前用户可见的看板列表，支持分页与排序。
+      tags: [agile]
+      security:
+        - oauth2:
+            - boards:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E7%9C%8B%E6%9D%BF%E4%B8%8E%E4%BB%BB%E5%8A%A1
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List boards
+          source: |
+            curl "https://api.esim-manage.example.com/boards?page=1&pageSize=20&sort=-createdAt" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Board"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建看板
+      operationId: createBoard
+      description: 创建一个新的看板（支持设置可见性与复用维度）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - boards:write
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E7%9C%8B%E6%9D%BF%E4%B8%8E%E4%BB%BB%E5%8A%A1
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create board
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/boards" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"R&D Delivery","scopeType":"project","visibility":"team"}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /boards/{id}/columns:
+    post:
+      summary: 在看板上新增列
+      operationId: createBoardColumn
+      description: 在指定看板上创建新的列（支持 WIP 限制与完成态标记）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - boards:write
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E7%9C%8B%E6%9D%BF%E4%B8%8E%E4%BB%BB%E5%8A%A1
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardColumnCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create board column
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/boards/${BOARD_ID}/columns" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"key":"in_progress","name":"In Progress","order":20,"wipLimit":5}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardColumn"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks:
+    get:
+      summary: 列出任务
+      description: 返回看板中的任务列表，支持筛选负责人与所属看板，并支持分页与排序。
+      operationId: listTasks
+      tags: [agile]
+      security:
+        - oauth2:
+            - tasks:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E7%9C%8B%E6%9D%BF%E4%B8%8E%E4%BB%BB%E5%8A%A1
+      parameters:
+        - name: boardId
+          in: query
+          required: false
+          schema: { type: string }
+          description: 过滤所属看板
+        - name: assigneeId
+          in: query
+          required: false
+          schema: { type: string }
+          description: 过滤负责人
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List tasks
+          source: |
+            curl "https://api.esim-manage.example.com/tasks?boardId=${BOARD_ID}&assigneeId=${USER_ID}&page=1&pageSize=50" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建任务
+      operationId: createTask
+      description: 在看板上创建任务卡片（支持估时、标签、附件与迭代关联）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - tasks:write
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E7%9C%8B%E6%9D%BF%E4%B8%8E%E4%BB%BB%E5%8A%A1
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create task
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/tasks" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"boardId":"${BOARD_ID}","columnId":"${COLUMN_ID}","title":"Implement webhook idempotency","priority":"high","estimateHours":8,"labels":["webhook","payment"]}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /worklogs:
+    get:
+      summary: 列出工时记录
+      description: 返回工时记录列表，支持按任务与用户筛选，并支持分页与排序。
+      operationId: listWorkLogs
+      tags: [agile]
+      security:
+        - oauth2:
+            - worklogs:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E5%B7%A5%E6%97%B6
+      parameters:
+        - name: taskId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: userId
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List worklogs
+          source: |
+            curl "https://api.esim-manage.example.com/worklogs?taskId=${TASK_ID}&userId=${USER_ID}&page=1&pageSize=100" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkLog"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建工时记录
+      operationId: createWorkLog
+      description: 为任务记录工时（支持计费标记与渠道/活动维度）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - worklogs:write
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E5%B7%A5%E6%97%B6
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkLogCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create worklog
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/worklogs" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"taskId":"${TASK_ID}","startAt":"2025-10-29T09:00:00Z","endAt":"2025-10-29T11:00:00Z","billable":true,"channel":"online","durationMinutes":120}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkLog"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sprints:
+    get:
+      summary: 列出迭代
+      description: 返回看板上的迭代列表，支持分页与排序。
+      operationId: listSprints
+      tags: [agile]
+      security:
+        - oauth2:
+            - sprints:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E8%BF%AD%E4%BB%A3%E4%B8%8E%E7%87%83%E5%B0%BD
+      parameters:
+        - name: boardId
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: List sprints
+          source: |
+            curl "https://api.esim-manage.example.com/sprints?boardId=${BOARD_ID}&page=1&pageSize=10" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sprint"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建迭代
+      operationId: createSprint
+      description: 在看板上创建迭代（支持时区与工作日配置）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - sprints:write
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E8%BF%AD%E4%BB%A3%E4%B8%8E%E7%87%83%E5%B0%BD
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SprintCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create sprint
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/sprints" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"boardId":"${BOARD_ID}","name":"Sprint 2025-11-01","startDate":"2025-11-01","endDate":"2025-11-14","timezone":"Asia/Shanghai","metricType":"hours"}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sprint"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sprints/{id}/burndown:
+    get:
+      summary: 查看迭代燃尽数据
+      operationId: getSprintBurndown
+      description: 返回指定迭代的每日剩余与完成数据（自动排除非工作日）。
+      tags: [agile]
+      security:
+        - oauth2:
+            - reports:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E8%BF%AD%E4%BB%A3%E4%B8%8E%E7%87%83%E5%B0%BD
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: Get sprint burndown
+          source: |
+            curl "https://api.esim-manage.example.com/sprints/${SPRINT_ID}/burndown" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BurndownPoint"
+        "401": { description: Unauthorized }
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reports:
+    get:
+      summary: 报表查询（看板/燃尽/工时）
+      operationId: queryReports
+      description: 返回指定类型的报表快照，可按看板/迭代与时间范围筛选。
+      tags: [agile]
+      security:
+        - oauth2:
+            - reports:read
+      externalDocs:
+        description: 错误码字典
+        url: https://docs.esim-manage.example.com/%E9%94%99%E8%AF%AF%E7%A0%81%E5%AD%97%E5%85%B8.md#%E6%8A%A5%E8%A1%A8
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            {
+              type: string,
+              enum: [kanban_throughput, burndown, timesheet_summary, velocity],
+            }
+        - name: boardId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sprintId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: periodStart
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: periodEnd
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: groupBy
+          in: query
+          required: false
+          schema: { type: string }
+          description: 逗号分隔的维度（如 'project,team,label'）
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      x-codeSamples:
+        - lang: cURL
+          label: Query reports
+          source: |
+            curl "https://api.esim-manage.example.com/reports?type=kanban_throughput&boardId=${BOARD_ID}&periodStart=2025-10-01T00:00:00Z&periodEnd=2025-10-31T23:59:59Z" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportSnapshot"
+              examples:
+                kanbanThroughput:
+                  summary: 看板通量快照示例
+                  value:
+                    - id: "rs_20251031_00001"
+                      type: "kanban_throughput"
+                      generatedAt: "2025-10-31T23:59:59Z"
+                      filters:
+                        boardId: "b_123"
+                        periodStart: "2025-10-01T00:00:00Z"
+                        periodEnd: "2025-10-31T23:59:59Z"
+                      metrics:
+                        itemsCompleted: 42
+                        avgCycleTimeHours: 36.5
+                        wipCount: 8
+                      metadata:
+                        groupBy: ["label"]
+                        segments:
+                          - key: "webhook"
+                            itemsCompleted: 20
+                          - key: "payment"
+                            itemsCompleted: 22
+        "401": { description: Unauthorized }
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/crawl-jobs:
+    post:
+      summary: 发起市场数据抓取任务（主流平台竞价数据）
+      operationId: createMarketCrawlJob
+      description: |
+        发起合规的市场数据抓取任务。系统将遵循目标站点 robots.txt 与平台 TOS，仅抓取公开数据，并在超限时返回 429（附带 Retry-After）。
+      tags: [market]
+      security:
+        - oauth2:
+            - market:crawl
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketCrawlRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Create market crawl job
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/market/crawl-jobs" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"platforms":["amazon","ebay"],"keywords":["eSIM","data plan"],"region":"CN"}'
+      responses:
+        "202":
+          description: Accepted
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      summary: 列出市场数据抓取作业
+      operationId: listMarketCrawlJobs
+      description: 列出抓取作业的分页列表。若因合规与风控策略触发限流，接口将返回 429（附带 Retry-After），请退避重试。
+      tags: [market]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      x-codeSamples:
+        - lang: cURL
+          label: List crawl jobs
+          source: |
+            curl "https://api.esim-manage.example.com/market/crawl-jobs?page=1&pageSize=20" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/crawl-jobs/{id}:
+    get:
+      summary: 查询市场数据抓取作业状态
+      operationId: getMarketCrawlJobStatus
+      description: 查询具体抓取作业的状态与告警信息。若触发风控限流，接口将返回 429（附带 Retry-After）。
+      tags: [market]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      x-codeSamples:
+        - lang: cURL
+          label: Get crawl job status
+          source: |
+            curl "https://api.esim-manage.example.com/market/crawl-jobs/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrawlJobStatus"
+        "404": { description: Not Found }
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies:
+    get:
+      summary: 列出定价策略
+      description: 获取定价策略列表，支持分页与排序。
+      operationId: listPricingStrategies
+      tags: [pricing]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      x-codeSamples:
+        - lang: cURL
+          label: List pricing strategies
+          source: |
+            curl "https://api.esim-manage.example.com/pricing/strategies?page=1&pageSize=20" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: 创建定价策略
+      description: 创建新的定价策略，用于后续审批与发布。
+      operationId: createPricingStrategy
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:write
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategyCreate"
+      x-codeSamples:
+        - lang: cURL
+          label: Create pricing strategy
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pricing/strategies" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Promo-2025-Q4","rules":[{"condition":{"country":"CN"},"price":19.9}]}'
+      responses:
+        "201":
+          description: Created
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies/{id}:
+    get:
+      summary: 定价策略详情
+      description: 查询指定定价策略的详细信息。
+      operationId: getPricingStrategy
+      tags: [pricing]
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      x-codeSamples:
+        - lang: cURL
+          label: Get pricing strategy
+          source: |
+            curl "https://api.esim-manage.example.com/pricing/strategies/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-Request-ID: ${REQUEST_ID}"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "404": { description: Not Found }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: 更新定价策略
+      description: 局部更新定价策略的规则或元数据。
+      operationId: updatePricingStrategy
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategyUpdate"
+      x-codeSamples:
+        - lang: cURL
+          label: Update pricing strategy
+          source: |
+            curl -X PATCH "https://api.esim-manage.example.com/pricing/strategies/{id}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"rules":[{"condition":{"country":"US"},"price":24.9}]}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies/{id}/approve:
+    post:
+      summary: 审批定价策略
+      description: 将定价策略提交审批并记录审批结论。
+      operationId: pricingStrategyApprove
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:approve
+            - approvals:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategyApprovalRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Approve pricing strategy
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pricing/strategies/{id}/approve" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"approvedBy":"pricing-ops","comment":"LGTM"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies/{id}/publish:
+    post:
+      summary: 发布定价策略
+      description: 将已审批通过的定价策略发布到生产环境或指定渠道。
+      operationId: pricingStrategyPublish
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:publish
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategyPublishRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Publish pricing strategy
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pricing/strategies/{id}/publish" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"publishAt":"2025-11-01T00:00:00Z"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies/{id}/simulate:
+    post:
+      summary: 仿真定价策略（基于指定场景与参数）
+      description: 在指定时间窗与渠道等假设条件下，仿真定价策略的影响与结果。
+      operationId: pricingStrategySimulate
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategySimulationRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Simulate pricing strategy
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pricing/strategies/{id}/simulate" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"period":{"from":"2025-11-01T00:00:00Z","to":"2025-11-30T23:59:59Z"},"channels":["web","app"],"assumptions":{"elasticity":0.8,"discount":0.1},"overrideRules":{"region":"US","price":24.9}}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingStrategySimulationResult"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pricing/strategies/{id}/rollback:
+    post:
+      summary: 回滚定价策略至指定版本或最近有效版本
+      description: 将定价策略回滚到指定版本或最近的有效版本，并返回最新状态。
+      operationId: pricingStrategyRollback
+      tags: [pricing]
+      security:
+        - oauth2:
+            - pricing:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingStrategyRollbackRequest"
+      x-codeSamples:
+        - lang: cURL
+          label: Rollback pricing strategy
+          source: |
+            curl -X POST "https://api.esim-manage.example.com/pricing/strategies/{id}/rollback" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Idempotency-Key: ${IDEMPOTENCY_KEY}" \
+              -H "X-Request-ID: ${REQUEST_ID}" \
+              -H "Content-Type: application/json" \
+              -d '{"targetVersion":2,"reason":"Revert due to revenue drop"}'
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingStrategy"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests（抓取频率超限或风控限流）
+          headers:
+            X-Correlation-ID:
+              $ref: "#/components/headers/X-Correlation-ID"
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.esim-manage.example.com/realms/main/protocol/openid-connect/token
+          scopes:
+            operators:read: 读取运营商
+            operators:write: 管理运营商
+            subscriptions:write: 管理订阅
+            billing:write: 计费操作
+            suppliers:read: 读取供应商
+            suppliers:write: 管理供应商
+            crm:read: 读取联系人/绑定等 CRM 资源
+            crm:write: 管理联系人/绑定等 CRM 资源
+            integrations:write: 管理外部系统集成配置与同步
+            approvals:write: 审批操作
+            billing:sign: 电子签章操作
+            market:crawl: 市场数据抓取作业
+            pricing:write: 定价策略创建与管理
+            pricing:approve: 定价策略审批
+            pricing:publish: 定价策略发布
+            attachments:write: 上传与管理附件（支付凭证等）
+            boards:read: 查看看板与列
+            boards:write: 管理看板与列
+            tasks:read: 查看任务
+            tasks:write: 管理任务
+            worklogs:read: 查看工时记录
+            worklogs:write: 管理工时记录
+            sprints:read: 查看迭代
+            sprints:write: 管理迭代
+            reports:read: 查看报表与燃尽数据
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+      description: 页码（默认 1）
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+      description: 每页条数（默认 20，最大 200）
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 排序字符串（如 'name:asc,createdAt:desc'）
+    EntityTypeFilter:
+      name: entityType
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [customer, supplier]
+      description: 过滤联系人所属实体类型
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+      description: 幂等键（用于确保 POST/PUT 等写操作的幂等性）
+    RequestIdHeader:
+      name: X-Request-ID
+      in: header
+      required: false
+      schema:
+        type: string
+      description: 请求链路跟踪 ID（服务端会在响应中返回/透传，用于排查与审计）
+    WebhookSignatureHeader:
+      name: X-SMDP-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+      description: SM-DP+ Webhook 签名，基于共享密钥或证书计算（用于验证回调来源与完整性）
+    WebhookTimestampHeader:
+      name: X-SMDP-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+      description: SM-DP+ Webhook 发起时间戳（用于签名时效校验与重放攻击防护）
+    PayPalTransmissionId:
+      name: PayPal-Transmission-Id
+      in: header
+      required: true
+      schema: { type: string }
+      description: PayPal Webhook 传输 ID
+    PayPalTransmissionTime:
+      name: PayPal-Transmission-Time
+      in: header
+      required: true
+      schema: { type: string }
+      description: PayPal Webhook 传输时间
+    PayPalTransmissionSig:
+      name: PayPal-Transmission-Sig
+      in: header
+      required: true
+      schema: { type: string }
+      description: PayPal Webhook 签名（基于证书与 webhookId 校验）
+    PayPalCertUrl:
+      name: PayPal-Cert-Url
+      in: header
+      required: false
+      schema: { type: string }
+      description: PayPal 证书 URL（可选）
+    PayPalAuthAlgo:
+      name: PayPal-Auth-Algo
+      in: header
+      required: false
+      schema: { type: string }
+      description: PayPal 签名算法（可选）
+    WechatpaySignature:
+      name: Wechatpay-Signature
+      in: header
+      required: true
+      schema: { type: string }
+      description: 微信支付 V3 回调签名
+    WechatpayTimestamp:
+      name: Wechatpay-Timestamp
+      in: header
+      required: true
+      schema: { type: string }
+      description: 微信支付 V3 回调时间戳
+    WechatpayNonce:
+      name: Wechatpay-Nonce
+      in: header
+      required: true
+      schema: { type: string }
+      description: 微信支付 V3 回调随机串
+    WechatpaySerial:
+      name: Wechatpay-Serial
+      in: header
+      required: false
+      schema: { type: string }
+      description: 微信支付平台证书序列号（可选）
+    AlipaySignature:
+      name: X-Alipay-Signature
+      in: header
+      required: false
+      schema: { type: string }
+      description: 支付宝签名（实际签名通常在请求体参数 sign 中）
+  headers:
+    X-Correlation-ID:
+      description: 服务端生成的关联 ID，用于跨服务链路追踪与审计。
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: 当前窗口的速率限制上限。
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: 当前窗口剩余可用的请求次数。
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: 距离窗口重置的秒数或时间戳。
+      schema:
+        type: integer
+    Retry-After:
+      description: 建议等待的时间，单位为秒或 HTTP 日期（RFC 7231），用于客户端退避与重试。
+      schema:
+        oneOf:
+          - type: integer
+            minimum: 0
+          - type: string
+            format: date-time
+  schemas:
+    OperatorCreate:
+      type: object
+      properties:
+        name: { type: string }
+        smdpPlusAddress: { type: string }
+        regions: { type: array, items: { type: string } }
+        certificateRef: { type: string }
+    OperatorUpdate:
+      allOf:
+        - $ref: "#/components/schemas/OperatorCreate"
+    PlanCreate:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [data, voice, sms, bundle] }
+        regions: { type: array, items: { type: string } }
+        capacityMb: { type: integer }
+        validityDays: { type: integer }
+        retailPrice: { type: number }
+        wholesalePrice: { type: number }
+    PoolCreate:
+      type: object
+      properties:
+        orgId: { type: string }
+        name: { type: string }
+        quotaMb: { type: integer }
+        thresholdPercent: { type: integer }
+        autoScale: { type: boolean }
+    CustomerCreate:
+      type: object
+      properties:
+        type: { type: string, enum: [B2B, B2C] }
+        name: { type: string }
+        contactEmail: { type: string }
+        kycRef: { type: string }
+    OrderCreate:
+      type: object
+      properties:
+        customerId: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              planId: { type: string }
+              quantity: { type: integer }
+    ActivationCodeCreate:
+      type: object
+      properties:
+        operatorId: { type: string }
+        planId: { type: string }
+        customerId: { type: string }
+        count: { type: integer }
+    SubscriptionCreate:
+      type: object
+      properties:
+        activationCodeId: { type: string }
+        deviceEid: { type: string }
+        planId: { type: string }
+    SubscriptionPatch:
+      type: object
+      properties:
+        action: { type: string, enum: [enable, disable, delete] }
+    InvoiceCreate:
+      type: object
+      properties:
+        customerId: { type: string }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+    InvoiceReconcileRequest:
+      type: object
+      properties:
+        sourceTypes:
+          type: array
+          items:
+            type: string
+            enum: [operator_usage, billing, payment]
+        tolerance:
+          type: number
+          description: 允许的对账误差（单位：货币最小单位，小数或整数取决于币种）
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        notes: { type: string }
+    InvoiceApprovalRequest:
+      type: object
+      properties:
+        approverId: { type: string }
+        decision: { type: string, enum: [approved, rejected] }
+        comment: { type: string }
+    InvoiceSignRequest:
+      type: object
+      properties:
+        signatureProvider:
+          type: string
+          enum: [docusign, adobe_sign, onchain]
+        certificateRef: { type: string }
+        reason: { type: string }
+    MarketCrawlRequest:
+      type: object
+      properties:
+        platforms:
+          type: array
+          items:
+            type: string
+            enum: [alibaba, jd, taobao, pinduoduo, amazon, ebay, shopee]
+        categories: { type: array, items: { type: string } }
+        keywords: { type: array, items: { type: string } }
+        regions: { type: array, items: { type: string } }
+        maxItems: { type: integer, minimum: 1, maximum: 10000 }
+        since: { type: string, format: date-time }
+        until: { type: string, format: date-time }
+    CrawlJobStatus:
+      type: object
+      properties:
+        jobId: { type: string }
+        status: { type: string, enum: [pending, running, succeeded, failed] }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+        itemCount: { type: integer }
+        error: { type: string }
+    PricingStrategyCreate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        targetProducts: { type: array, items: { type: string } }
+        rules: { type: object }
+        dataSourceJobId: { type: string }
+        effectiveFrom: { type: string, format: date-time }
+        effectiveTo: { type: string, format: date-time }
+        channels: { type: array, items: { type: string } }
+    PricingStrategyUpdate:
+      allOf:
+        - $ref: "#/components/schemas/PricingStrategyCreate"
+    PricingStrategy:
+      allOf:
+        - $ref: "#/components/schemas/PricingStrategyCreate"
+      properties:
+        id: { type: string }
+        version: { type: integer }
+        status: { type: string, enum: [draft, approved, published, retired] }
+    PricingStrategyApprovalRequest:
+      type: object
+      properties:
+        approverId: { type: string }
+        decision: { type: string, enum: [approved, rejected] }
+        comment: { type: string }
+    PricingStrategyPublishRequest:
+      type: object
+      properties:
+        releaseNotes: { type: string }
+        effectiveFrom: { type: string, format: date-time }
+        effectiveTo: { type: string, format: date-time }
+        channels: { type: array, items: { type: string } }
+    PricingStrategySimulationRequest:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            from: { type: string, format: date-time }
+            to: { type: string, format: date-time }
+        channels: { type: array, items: { type: string } }
+        assumptions:
+          type: object
+          properties:
+            elasticity: { type: number }
+            discount: { type: number }
+        overrideRules: { type: object }
+        marketDataJobId: { type: string }
+    PricingStrategySimulationResult:
+      type: object
+      properties:
+        expectedRevenue: { type: number }
+        expectedMargin: { type: number }
+        expectedConversions: { type: integer }
+        breakdown: { type: object }
+        comparedToCurrent:
+          type: object
+          properties:
+            revenueDelta: { type: number }
+            marginDelta: { type: number }
+            conversionsDelta: { type: integer }
+    PricingStrategyRollbackRequest:
+      type: object
+      properties:
+        targetVersion: { type: integer }
+        reason: { type: string }
+    PaymentRequest:
+      type: object
+      properties:
+        invoiceId: { type: string }
+        amount: { type: number }
+        currency: { type: string }
+        method: { type: string, enum: [paypal, alipay, wechatpay, bank] }
+        payerBillNo:
+          { type: string, description: "第三方账单编号/银行水单编号（可选）" }
+        proofUrls:
+          {
+            type: array,
+            items: { type: string },
+            description: "支付截图/回单凭证的存储 URL 列表（可选）",
+          }
+        gatewayRef: { type: string, description: "支付网关交易号（可选）" }
+        note: { type: string }
+    Payment:
+      type: object
+      properties:
+        id: { type: string }
+        invoiceId: { type: string }
+        amount: { type: number }
+        currency: { type: string }
+        method: { type: string, enum: [paypal, alipay, wechatpay, bank] }
+        status: { type: string, enum: [initiated, succeeded, failed, refunded] }
+        gatewayRef: { type: string }
+        payerBillNo: { type: string }
+        proofUrls: { type: array, items: { type: string } }
+        receiptStatus: { type: string, enum: [pending, confirmed, rejected] }
+        receiptConfirmedBy: { type: string }
+        receiptConfirmedAt: { type: string, format: date-time }
+        receiptNotes: { type: string }
+        createdAt: { type: string, format: date-time }
+    BoardCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        scopeType:
+          {
+            type: string,
+            enum: [project, team, productLine, channel, campaign, org],
+          }
+        scopeRefId: { type: string }
+        visibility: { type: string, enum: [org, team, project, private] }
+        wipPolicy: { type: object }
+        swimlanes: { type: object }
+        metadata: { type: object }
+    Board:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        scopeType: { type: string }
+        scopeRefId: { type: string }
+        visibility: { type: string }
+        status: { type: string, enum: [active, archived] }
+        wipPolicy: { type: object }
+        swimlanes: { type: object }
+        metadata: { type: object }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    BoardColumnCreate:
+      type: object
+      required: [key, name]
+      properties:
+        key: { type: string }
+        name: { type: string }
+        order: { type: integer }
+        wipLimit: { type: integer }
+        policies: { type: object }
+        isDone: { type: boolean }
+    BoardColumn:
+      type: object
+      properties:
+        id: { type: string }
+        boardId: { type: string }
+        key: { type: string }
+        name: { type: string }
+        order: { type: integer }
+        wipLimit: { type: integer }
+        policies: { type: object }
+        isDone: { type: boolean }
+        status: { type: string, enum: [active, archived] }
+    TaskCreate:
+      type: object
+      required: [boardId, title]
+      properties:
+        boardId: { type: string }
+        columnId: { type: string }
+        type: { type: string, enum: [task, bug, epic, ops, marketing] }
+        title: { type: string }
+        description: { type: string }
+        assigneeId: { type: string }
+        priority: { type: string, enum: [low, medium, high, urgent] }
+        labels: { type: array, items: { type: string } }
+        storyPoints: { type: number }
+        estimateHours: { type: number }
+        remainingHours: { type: number }
+        dueDate: { type: string, format: date-time }
+        attachments: { type: array, items: { type: string } }
+        sprintId: { type: string }
+        relatedInvoiceId: { type: string }
+        relatedPaymentId: { type: string }
+    Task:
+      type: object
+      properties:
+        id: { type: string }
+        boardId: { type: string }
+        columnId: { type: string }
+        sprintId: { type: string }
+        type: { type: string }
+        title: { type: string }
+        description: { type: string }
+        assigneeId: { type: string }
+        priority: { type: string }
+        labels: { type: array, items: { type: string } }
+        storyPoints: { type: number }
+        estimateHours: { type: number }
+        remainingHours: { type: number }
+        actualHours: { type: number }
+        status: { type: string }
+        dueDate: { type: string, format: date-time }
+        attachments: { type: array, items: { type: string } }
+        relatedInvoiceId: { type: string }
+        relatedPaymentId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WorkLogCreate:
+      type: object
+      required: [taskId, durationMinutes]
+      properties:
+        taskId: { type: string }
+        userId: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }
+        billable: { type: boolean }
+        costCenter: { type: string }
+        channel: { type: string }
+        campaignId: { type: string }
+        note: { type: string }
+    WorkLog:
+      type: object
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        userId: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }
+        billable: { type: boolean }
+        costCenter: { type: string }
+        channel: { type: string }
+        campaignId: { type: string }
+        approvedStatus: { type: string, enum: [pending, approved, rejected] }
+        approvedBy: { type: string }
+        approvedAt: { type: string, format: date-time }
+        source: { type: string, enum: [manual, timer, api, import] }
+    SprintCreate:
+      type: object
+      required: [boardId, name, startDate, endDate]
+      properties:
+        boardId: { type: string }
+        name: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        timezone: { type: string }
+        workingCalendar: { type: object }
+        metricType: { type: string, enum: [storyPoints, hours] }
+        plannedPoints: { type: number }
+        plannedHours: { type: number }
+    Sprint:
+      type: object
+      properties:
+        id: { type: string }
+        boardId: { type: string }
+        name: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        timezone: { type: string }
+        workingCalendar: { type: object }
+        metricType: { type: string }
+        plannedPoints: { type: number }
+        plannedHours: { type: number }
+        status: { type: string, enum: [planned, active, closed] }
+        metadata: { type: object }
+    BurndownPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        remaining: { type: number }
+        completed: { type: number }
+    ReportSnapshot:
+      type: object
+      properties:
+        id: { type: string }
+        reportType:
+          {
+            type: string,
+            enum:
+              [
+                kanban_throughput,
+                burndown,
+                timesheet_summary,
+                velocity,
+                marketing_kpi_corr,
+              ],
+          }
+        periodStart: { type: string, format: date-time }
+        periodEnd: { type: string, format: date-time }
+        boardId: { type: string }
+        sprintId: { type: string }
+        dimensions: { type: object }
+        metrics: { type: object }
+        generatedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PaymentUpdate:
+      type: object
+      properties:
+        receiptStatus: { type: string, enum: [pending, confirmed, rejected] }
+        receiptNotes: { type: string }
+        proofUrls: { type: array, items: { type: string } }
+    SmdpplusWebhookEvent:
+      type: object
+      properties:
+        eventType:
+          {
+            type: string,
+            enum:
+              [
+                available,
+                downloaded,
+                installed,
+                enabled,
+                disabled,
+                deleted,
+                failed,
+              ],
+          }
+        eid: { type: string }
+        iccid: { type: string }
+        matchingId: { type: string }
+        timestamp: { type: string, format: date-time }
+    ExternalCrmBinding:
+      type: object
+      properties:
+        id: { type: string }
+        system: { type: string, enum: [salesforce, hubspot, zoho, other] }
+        entityType: { type: string, enum: [customer, supplier, contact] }
+        entityId: { type: string }
+        externalId: { type: string }
+        syncMode: { type: string, enum: [one_way, two_way] }
+        conflictPolicy:
+          { type: string, enum: [platform_first, external_first, field_level] }
+        fieldMappings: { type: object }
+        lastSyncedAt: { type: string, format: date-time }
+        status: { type: string, enum: [active, inactive] }
+    ExternalCrmBindingCreate:
+      type: object
+      properties:
+        system: { type: string, enum: [salesforce, hubspot, zoho, other] }
+        entityType: { type: string, enum: [customer, supplier, contact] }
+        entityId: { type: string }
+        externalId: { type: string }
+        syncMode: { type: string, enum: [one_way, two_way] }
+        conflictPolicy:
+          { type: string, enum: [platform_first, external_first, field_level] }
+        fieldMappings: { type: object }
+    ExternalCrmBindingUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ExternalCrmBindingCreate"
+    SupplierCreate:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [carrier, reseller, vendor] }
+        regions: { type: array, items: { type: string } }
+        contactEmail: { type: string }
+        kycRef: { type: string }
+        slaTargets: { type: object }
+    SupplierUpdate:
+      allOf:
+        - $ref: "#/components/schemas/SupplierCreate"
+    ContactCreate:
+      type: object
+      properties:
+        entityType: { type: string, enum: [customer, supplier] }
+        entityId: { type: string }
+        role: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        preferences: { type: object }
+    ContactUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ContactCreate"
+    CrmIntegrationConfig:
+      type: object
+      properties:
+        system: { type: string, enum: [salesforce, hubspot, zoho, other] }
+        oauthClientId: { type: string }
+        oauthClientSecret: { type: string }
+        tokenUrl: { type: string }
+        fieldMappings: { type: object }
+        conflictPolicy:
+          { type: string, enum: [platform_first, external_first, field_level] }
+        syncMode: { type: string, enum: [one_way, two_way] }
+    CrmSyncRequest:
+      type: object
+      properties:
+        direction: { type: string, enum: [push, pull, both] }
+        scope: { type: string, enum: [customers, suppliers, contacts, all] }
+        type: { type: string, enum: [incremental, full] }
+        since: { type: string, format: date-time }
+    CrmSyncStatus:
+      type: object
+      properties:
+        jobId: { type: string }
+        status: { type: string, enum: [pending, running, succeeded, failed] }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+        details: { type: object }
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: { type: object }
+        requestId: { type: string }
+    Attachment:
+      type: object
+      properties:
+        fileId: { type: string, description: 文件唯一ID }
+        url:
+          {
+            type: string,
+            format: uri,
+            description: 可访问的文件URL（可能为签名URL）,
+          }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: integer, format: int64, description: 文件大小（字节） }
+        md5: { type: string, description: 内容MD5（用于幂等与校验） }
+        purpose: { type: string, enum: [payment_proof, general] }
+        createdAt: { type: string, format: date-time }
+    PayPalWebhookEvent:
+      type: object
+      properties:
+        id: { type: string }
+        event_type: { type: string }
+        summary: { type: string }
+        create_time: { type: string, format: date-time }
+        resource_type: { type: string }
+        resource: { type: object }
+        webhook_id: { type: string }
+    WechatpayWebhookEvent:
+      type: object
+      properties:
+        id: { type: string }
+        create_time: { type: string, format: date-time }
+        event_type: { type: string }
+        resource:
+          type: object
+          properties:
+            algorithm: { type: string }
+            ciphertext: { type: string }
+            nonce: { type: string }
+            associated_data: { type: string }
+    AlipayWebhookEvent:
+      type: object
+      properties:
+        notify_time: { type: string }
+        notify_type: { type: string }
+        notify_id: { type: string }
+        app_id: { type: string }
+        trade_no: { type: string }
+        out_trade_no: { type: string }
+        trade_status: { type: string }
+        total_amount: { type: string }
+        buyer_id: { type: string }
+        gmt_payment: { type: string }
+        sign: { type: string }
+        sign_type: { type: string }

@@ -1,0 +1,41 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+. "$(dirname "$0")/common.sh"
+
+[ -n "$CI" ] && exit 0
+
+PATH="/usr/local/bin:$PATH"
+
+# Perform lint check on files in the staging area through .lintstagedrc configuration
+pnpm exec lint-staged
+
+# ------------------------------------------------------------
+# Icon usage audit (online colon style preferred)
+# - 仅在变更涉及前端源码/脚本时执行
+# - 可通过环境变量临时跳过：SKIP_ICON_AUDIT=1 git commit -m "..."
+# - 失败将阻断提交，以避免将“斜杠风格误用”等问题带入仓库
+# ------------------------------------------------------------
+
+# shellcheck disable=SC2046
+CHANGED_FILES=$(git diff --name-only --cached)
+
+should_run_audit=false
+if echo "$CHANGED_FILES" | grep -E "^(pure-admin-thin-max-ts/)?src/|^(pure-admin-thin-max-ts/)?scripts/audit-icon-usage.mjs|^(pure-admin-thin-max-ts/)?package.json|^(pure-admin-thin-max-ts/)?pnpm-lock.yaml" >/dev/null; then
+  should_run_audit=true
+fi
+
+if [ "$SKIP_ICON_AUDIT" = "1" ]; then
+  echo "[icon-audit] 跳过（检测到环境变量 SKIP_ICON_AUDIT=1）"
+else
+  if [ "$should_run_audit" = true ]; then
+    echo "[icon-audit] 开始执行……"
+    # 说明：当前 hook 位于 pure-admin-thin-max-ts 子项目内，直接运行子项目脚本
+    if ! pnpm run -s audit:icon; then
+      echo "[icon-audit] 发现问题，已阻止提交。请根据输出修复后重试。"
+      exit 1
+    fi
+    echo "[icon-audit] 通过"
+  else
+    echo "[icon-audit] 跳过（本次提交未涉及前端源码/脚本/依赖）"
+  fi
+fi

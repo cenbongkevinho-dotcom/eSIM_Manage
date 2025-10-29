@@ -1,0 +1,26 @@
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node.js dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Playwright artifacts and test outputs
+playwright-report/
+test-results/
+tmp_trace/
+
+# Logs and caches
+*.log
+.pnpm-store/
+.cache/
+
+# Environment files
+.env*
+
+# Vite local files
+*.local

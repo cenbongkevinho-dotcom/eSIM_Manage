@@ -1,0 +1,36 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 2208059 */
+  src:
+    url("iconfont.woff2?t=1671895108120") format("woff2"),
+    url("iconfont.woff?t=1671895108120") format("woff"),
+    url("iconfont.ttf?t=1671895108120") format("truetype");
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.pure-iconfont-tabs:before {
+  content: "\e63e";
+}
+
+.pure-iconfont-logo:before {
+  content: "\e620";
+}
+
+.pure-iconfont-new:before {
+  content: "\e615";
+}
+
+/* 统一 symbol 模式的 SVG 图标默认样式，便于与 Iconify 保持一致 */
+.icon-svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em; /* 使图标与文字基线对齐 */
+  fill: currentColor; /* 继承文字颜色 */
+  overflow: hidden;
+}

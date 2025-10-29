@@ -1,0 +1,65 @@
+name: Contract Tests
+
+on:
+  pull_request:
+    paths:
+      - 'docs/api/openapi.yaml'
+      - 'docs/错误码字典.md'
+      - 'docs/技术架构_权限矩阵与契约测试.md'
+      - 'docs/ci/**'
+      - '.spectral.yaml'
+
+jobs:
+  spectral:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Spectral
+        run: npm i -g @stoplight/spectral-cli
+      - name: Lint OpenAPI
+        run: spectral lint docs/api/openapi.yaml --fail-severity=warn
+
+  dredd:
+    runs-on: ubuntu-latest
+    needs: spectral
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dredd
+        run: npm i -g dredd
+      - name: Run Dredd Contract Tests
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          REQUEST_ID=$(uuidgen)
+          IDEMPOTENCY_KEY=$(uuidgen)
+          dredd ./docs/api/openapi.yaml ${BASE_URL} \
+            --hookfiles=./docs/ci/hooks.js \
+            --user "Authorization: Bearer ${API_TOKEN}" \
+            --user "X-Request-ID: ${REQUEST_ID}" \
+            --env IDEMPOTENCY_KEY=${IDEMPOTENCY_KEY}
+
+  schemathesis:
+    runs-on: ubuntu-latest
+    needs: spectral
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Schemathesis
+        run: pip install schemathesis
+      - name: Run Schemathesis Property Tests (Project Management Tags)
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          REQUEST_ID=$(uuidgen)
+          schemathesis run docs/api/openapi.yaml \
+            --base-url=${BASE_URL} \
+            --tag boards --tag tasks --tag worklogs --tag sprints --tag reports \
+            --checks all \
+            --hypothesis-max-examples=50 \
+            --auth="Bearer ${API_TOKEN}" \
+            --header="X-Request-ID: ${REQUEST_ID}"
+
