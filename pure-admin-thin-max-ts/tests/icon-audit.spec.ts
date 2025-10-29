@@ -1,34 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { ensureDevAuth, closeExtraneousPanels } from "./helpers/e2e-utils";
 
-/**
- * 在页面脚本加载前注入“模拟已登录”的状态
- * - 设置 localStorage 的 user-info（包含最小角色集）
- * - 写入 multiple-tabs Cookie 以满足路由守卫的登录判断
- * 说明：不依赖实际登录接口，避免环境耦合；仅用于开发自测页的冒烟验证
- */
-async function ensureDevAuth(page) {
-  await page.addInitScript(() => {
-    try {
-      // 设置最小用户信息，满足路由守卫 user-info 判定
-      window.localStorage.setItem(
-        "user-info",
-        JSON.stringify({
-          refreshToken: "e2e-dev",
-          expires: Date.now() + 60 * 60 * 1000,
-          avatar: "",
-          username: "e2e",
-          nickname: "E2E",
-          roles: ["admin"],
-          permissions: ["*:*:*"]
-        })
-      );
-      // 标记多标签登录 Cookie（路由守卫依赖）
-      document.cookie = "multiple-tabs=true; path=/; max-age=3600";
-    } catch (_) {
-      // 忽略注入失败，后续断言会暴露问题
-    }
-  });
-}
 
 /**
  * 打开 Icon 校验页并等待核心元素渲染
@@ -92,67 +64,6 @@ async function gotoIconAudit(page) {
   }
 }
 
-/**
- * 关闭页面上所有“非作用域”的已打开 LayPanel 面板
- * - 通过 data-testid="lay-panel-root" + data-open="true" 精确定位
- * - 可选：传入作用域根容器（如 demo 卡片）以排除本作用域内的面板
- */
-async function closeExtraneousPanels(page, scopeRootSelector?: string) {
-  // 先尝试关闭全局布局设置面板（若存在且打开）
-  // 通过 data-channel 精确定位布局设置面板（无需依赖测试专用 testid）
-  const layoutSettingPanel = page.locator(
-    '[data-testid="lay-panel-root"][data-channel="layout-setting"]'
-  );
-  if ((await layoutSettingPanel.count()) > 0) {
-    const openAttr = await layoutSettingPanel.getAttribute("data-open");
-    if (openAttr === "true") {
-      await layoutSettingPanel
-        .getByTestId("panel-close-btn")
-        .first()
-        .click({ force: true });
-      await expect
-        .poll(async () => await layoutSettingPanel.getAttribute("data-open"), {
-          timeout: 5000
-        })
-        .toBe("false");
-    }
-  }
-
-  const openPanels = page.locator(
-    '[data-testid="lay-panel-root"][data-open="true"]'
-  );
-  const count = await openPanels.count();
-  if (count === 0) return;
-
-  for (let i = 0; i < count; i++) {
-    const candidate = openPanels.nth(i);
-    const ch = (await candidate.getAttribute("data-channel")) || "default";
-    // 永远不要关闭当前演示卡片的面板（channel=icon-audit）
-    if (ch === "icon-audit") continue;
-    if (scopeRootSelector) {
-      const inScope = await candidate.evaluate(
-        (el, sel) => !!el.closest(sel),
-        scopeRootSelector
-      );
-      if (inScope) continue;
-    }
-    // 试探点击避免报错，然后执行强制点击确保能触发关闭
-    await candidate
-      .getByTestId("panel-close-btn")
-      .first()
-      .click({ trial: true })
-      .catch(() => {});
-    await candidate
-      .getByTestId("panel-close-btn")
-      .first()
-      .click({ force: true });
-    await expect
-      .poll(async () => await candidate.getAttribute("data-open"), {
-        timeout: 5000
-      })
-      .toBe("false");
-  }
-}
 
 /**
  * 验证在线图标是否正确渲染

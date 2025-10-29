@@ -14,6 +14,12 @@ export default defineConfig({
   /* 期望断言超时 */
   expect: { timeout: 10 * 1000 },
   /**
+   * 重试策略：
+   * - 在 CI 环境下开启 1 次重试，抵御云端环境偶发抖动（冷启动、网络波动等）。
+   * - 本地保持默认不重试，便于快速暴露问题。
+   */
+  retries: process.env.CI ? 1 : 0,
+  /**
    * CI 稳定性：
    * - 在 CI 环境下（CI=true）使用单 worker，降低并发带来的端口/资源竞争与偶发竞态。
    * - 本地保持 Playwright 默认 workers（CPU 核心数），保证开发效率。
