@@ -38,5 +38,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run audit:icon
-        run: pnpm audit:icon
+      - name: Run audit:icon and save log
+        run: pnpm audit:icon | tee audit-icon.log
+
+      - name: Upload audit log artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: icon-audit-report
+          path: pure-admin-thin-max-ts/audit-icon.log
+          if-no-files-found: ignore
