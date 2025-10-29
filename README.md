@@ -1,5 +1,10 @@
 # eSIM_Manage 文档与项目概览
 
+[![Icon Smoke](https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-smoke.yml/badge.svg?branch=main)](https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-smoke.yml)
+[![Icon Audit](https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-audit.yml/badge.svg?branch=main)](https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-audit.yml)
+
+说明：以上徽章会显示最新一次在 main 分支上的工作流状态（通过/失败/运行中）。点击徽章可进入对应工作流的运行列表。
+
 本仓库包含 eSIM_Manage 平台的初版产品需求与技术架构文档，遵循 GSMA eSIM RSP 架构（Consumer/M2M）。
 
 ## 文档目录
@@ -57,3 +62,18 @@
 - .spectral.yaml（Spectral 基础规则：GET 端点需含 x-codeSamples；429 响应需含 Retry-After 头）
 
 本地运行与 CI 集成的详细命令请参考 docs/ci/契约测试.md。
+
+前端图标相关烟雾测试（Playwright）：
+
+```bash
+cd pure-admin-thin-max-ts
+
+# 安装依赖
+pnpm install
+
+# 安装 Playwright 浏览器
+pnpm test:install
+
+# 运行烟雾测试（Chromium）
+pnpm test:icon:smoke
+```
