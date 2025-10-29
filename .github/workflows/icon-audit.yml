@@ -26,10 +26,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # 使用显式 Node 20.x（LTS），避免云端 runner 对 22.x 的镜像/分发不稳定问题
-          node-version: '20.x'
-          cache: 'pnpm'
-          cache-dependency-path: pure-admin-thin-max-ts/pnpm-lock.yaml
+          # 与 icon-smoke 保持一致，直接从 .nvmrc 读取版本，避免 setup-node 缓存相关问题
+          node-version-file: 'pure-admin-thin-max-ts/.nvmrc'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
