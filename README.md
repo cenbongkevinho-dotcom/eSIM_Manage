@@ -86,6 +86,7 @@ pnpm test:icon:smoke
   - 在单次运行页面底部的 Artifacts 区块可下载：
     - playwright-report：HTML 报告（解压后打开 index.html）
     - playwright-test-results：trace/失败截图/视频（失败时才有）
+    - icon-audit-report：图标审计日志（icon-audit 任务输出，便于在云端复查审计结论）
 
 - 本地打开 Playwright 报告与 trace：
   - HTML 报告：在 pure-admin-thin-max-ts 目录执行 `pnpm exec playwright show-report`
@@ -97,4 +98,5 @@ pnpm test:icon:smoke
   - 开发服务器冷启动：CI 环境下已将 `webServer.timeout` 提升至 120s，若仍有偶发端口监听延迟，可进一步延长或在任务前显式健康检查。
   - 并发资源竞争：CI 已限制 `workers=1`，如本地复现需降低并发，可在本地执行时加 `--workers=1`。
 
-如需更多细节或新增自定义报告（例如审计脚本输出作为 Artifact），可提出需求，我将补充工作流与文档说明。
+提示：Icon Audit 工作流现已上传审计日志（icon-audit-report）为 Artifact，可直接下载查看。
+如需更多细节或新增自定义报告，可提出需求，我将补充工作流与文档说明。

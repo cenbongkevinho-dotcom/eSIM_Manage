@@ -28,6 +28,7 @@
 - 位置：仓库根目录 `/.github/workflows/icon-audit.yml`
 - 触发：push / pull_request
 - 行为：安装 `pure-admin-thin-max-ts` 子项目依赖后执行 `pnpm audit:icon`，以防回归。
+- 构件上传：将审计日志保存为 `audit-icon.log` 并上传为 Artifact（名称：`icon-audit-report`），在 GitHub Actions 运行详情页可下载复查。
 
 ### 1.4 半自动回归（Playwright，本地）
 
