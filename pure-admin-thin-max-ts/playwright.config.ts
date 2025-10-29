@@ -13,6 +13,12 @@ export default defineConfig({
   timeout: 30 * 1000,
   /* 期望断言超时 */
   expect: { timeout: 10 * 1000 },
+  /**
+   * CI 稳定性：
+   * - 在 CI 环境下（CI=true）使用单 worker，降低并发带来的端口/资源竞争与偶发竞态。
+   * - 本地保持 Playwright 默认 workers（CPU 核心数），保证开发效率。
+   */
+  workers: process.env.CI ? 1 : undefined,
   /* 报告器：控制台列表 + HTML（CI 中由工作流采集为 Artifact） */
   reporter: [["list"], ["html", { open: "never" }]],
   /* 基础 URL，允许通过环境变量覆盖（如 CI 场景） */
@@ -41,6 +47,11 @@ export default defineConfig({
     command: "pnpm dev",
     url: process.env.BASE_URL || "http://localhost:8848",
     reuseExistingServer: true,
-    timeout: 60 * 1000
+    /**
+     * CI 环境下提升 dev server 启动等待时间，避免云端冷启动导致的端口监听延迟：
+     * - CI=true: 120s
+     * - 本地: 60s
+     */
+    timeout: process.env.CI ? 120 * 1000 : 60 * 1000
   }
 });
