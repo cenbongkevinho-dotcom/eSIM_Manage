@@ -64,6 +64,17 @@ async function gotoIconAudit(page) {
   }
 }
 
+/**
+ * 获取 IconAudit 演示卡片对应的 LayPanel 根节点
+ * 说明：LayPanel 使用 position: fixed 脱离文档流，若通过卡片作用域定位可能导致视口滚动与点击不稳定。
+ * 因此统一通过 data-channel="icon-audit" 精确定位该面板根节点，以提升交互稳定性。
+ */
+function getIconAuditPanel(page) {
+  return page
+    .locator('[data-testid="lay-panel-root"][data-channel="icon-audit"]')
+    .first();
+}
+
 
 /**
  * 验证在线图标是否正确渲染
@@ -131,7 +142,7 @@ test.describe("IconAudit smoke", () => {
       await card.getByTestId("open-panel-btn").click({ force: true });
 
       // 断言当前卡片作用域内的面板已打开且内部面板元素可见
-      const panel = card.locator('[data-testid="lay-panel-root"]').first();
+      const panel = getIconAuditPanel(page);
       // 函数级注释: 使用属性轮询，降低立即切换引发的竞态失败，并确保面板打开后内部元素可见
       await expect
         .poll(async () => await panel.getAttribute("data-open"), {
@@ -150,8 +161,10 @@ test.describe("IconAudit smoke", () => {
         })
         .toBe("true");
 
-      // 点击关闭按钮关闭当前面板
-      await panel.getByTestId("panel-close-btn").first().click({ force: true });
+      // 点击关闭按钮关闭当前面板（fixed 元素在某些视口下可能被判定为不可见，先滚动到可视区域）
+      const closeBtn = panel.getByTestId("panel-close-btn").first();
+      await closeBtn.scrollIntoViewIfNeeded();
+      await closeBtn.click({ force: true });
 
       // 轮询断言属性变为关闭态
       await expect
