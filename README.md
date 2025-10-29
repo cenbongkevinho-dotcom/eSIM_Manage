@@ -77,3 +77,24 @@ pnpm test:install
 # 运行烟雾测试（Chromium）
 pnpm test:icon:smoke
 ```
+
+前端图标烟雾测试的 CI 构件与失败排查指南：
+
+- 在 GitHub Actions 对应工作流页面下载构件：
+  - Icon Smoke 工作流（main 分支）：https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-smoke.yml?query=branch%3Amain
+  - Icon Audit 工作流（main 分支）：https://github.com/cenbongkevinho-dotcom/eSIM_Manage/actions/workflows/icon-audit.yml?query=branch%3Amain
+  - 在单次运行页面底部的 Artifacts 区块可下载：
+    - playwright-report：HTML 报告（解压后打开 index.html）
+    - playwright-test-results：trace/失败截图/视频（失败时才有）
+
+- 本地打开 Playwright 报告与 trace：
+  - HTML 报告：在 pure-admin-thin-max-ts 目录执行 `pnpm exec playwright show-report`
+  - 单次 trace 文件：`pnpm exec playwright show-trace test-results/<具体用例目录>/trace.zip`
+
+- 常见失败定位建议：
+  - 选择器不稳定：优先使用 `data-testid` 或 `data-icon`，避免仅用文本与位置。
+  - 动画/过渡导致的竞态：在状态切换断言中使用 `expect.poll` 轮询属性（如 `data-open`），并适度放宽期望超时。
+  - 开发服务器冷启动：CI 环境下已将 `webServer.timeout` 提升至 120s，若仍有偶发端口监听延迟，可进一步延长或在任务前显式健康检查。
+  - 并发资源竞争：CI 已限制 `workers=1`，如本地复现需降低并发，可在本地执行时加 `--workers=1`。
+
+如需更多细节或新增自定义报告（例如审计脚本输出作为 Artifact），可提出需求，我将补充工作流与文档说明。
