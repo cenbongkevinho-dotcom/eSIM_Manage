@@ -26,14 +26,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: pure-admin-thin-max-ts/.nvmrc
+          # 使用显式 Node 22.x，避免读取 .nvmrc 时偶发解析/可用版本不一致导致的失败
+          node-version: '22.x'
           cache: 'pnpm'
           cache-dependency-path: pure-admin-thin-max-ts/pnpm-lock.yaml
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v3
         with:
+          # 显式使用 pnpm@9，与锁文件 lockfileVersion: 9 保持一致，提高一致性
+          version: 9
           run_install: false
+
+      - name: Show tool versions
+        run: |
+          node -v
+          pnpm -v
+          npm -v
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
