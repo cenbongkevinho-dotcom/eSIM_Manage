@@ -13,6 +13,9 @@ dist/
 playwright-report/
 test-results/
 tmp_trace/
+**/playwright-report/
+**/test-results/
+**/tmp_trace/
 
 # Logs and caches
 *.log
