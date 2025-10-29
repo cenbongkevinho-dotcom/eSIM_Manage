@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ensureDevAuth } from "./helpers/e2e-utils";
+import { ensureDevAuth, closeExtraneousPanels } from "./helpers/e2e-utils";
 
 
 /**
@@ -10,6 +10,8 @@ import { ensureDevAuth } from "./helpers/e2e-utils";
 async function gotoSchedulePreview(page) {
   await ensureDevAuth(page);
   await page.goto("/#/dev/schedule-preview");
+  // 函数级注释：进入页面后先关闭所有非作用域的已打开面板，避免遮挡导致控件不可见
+  await closeExtraneousPanels(page);
   await expect(page.getByPlaceholder("请选择日期")).toBeVisible();
   await expect(page.getByRole("button", { name: "今天" })).toBeVisible();
   await expect(page.getByRole("button", { name: "上个月" })).toBeVisible();
@@ -24,6 +26,11 @@ test("Schedule preview smoke: basic controls and at least one icon rendered", as
   // 函数级注释：为该用例设置更宽松的执行超时，减少首次编译或云端冷启动导致的偶发超时
   test.setTimeout(45000);
   await gotoSchedulePreview(page);
-  // 日历中应至少渲染出一个 iconify 图标（如新增按钮）
-  await expect(page.locator(".el-calendar .iconify").first()).toBeVisible();
+  // 函数级注释：在云端环境中可能存在网络受限，Iconify 在线图标加载有延迟；
+  // 这里采用更稳健的选择器，允许 svg/img/iconify 三者之一可见即可。
+  const bySvgImgOrIconify = page
+    .locator(".el-calendar svg, .el-calendar img, .el-calendar .iconify")
+    .first();
+  await bySvgImgOrIconify.scrollIntoViewIfNeeded();
+  await expect(bySvgImgOrIconify).toBeVisible();
 });

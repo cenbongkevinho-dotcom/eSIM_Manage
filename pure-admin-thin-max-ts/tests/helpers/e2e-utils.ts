@@ -87,15 +87,11 @@ export async function closeExtraneousPanels(
       );
       if (inScope) continue;
     }
-    await candidate
-      .getByTestId("panel-close-btn")
-      .first()
-      .click({ trial: true })
-      .catch(() => {});
-    await candidate
-      .getByTestId("panel-close-btn")
-      .first()
-      .click({ force: true });
+    // 函数级注释：fixed 定位的关闭按钮在某些视口下可能被判定为“在视口外”，先滚动到可视区域再点击
+    const closeBtn = candidate.getByTestId("panel-close-btn").first();
+    await closeBtn.scrollIntoViewIfNeeded();
+    await closeBtn.click({ trial: true }).catch(() => {});
+    await closeBtn.click({ force: true });
     await expect
       .poll(async () => await candidate.getAttribute("data-open"), {
         timeout: 5000
