@@ -11,6 +11,13 @@ import type { Page } from "@playwright/test";
 export async function ensureDevAuth(page: Page): Promise<void> {
   await page.addInitScript(() => {
     try {
+      // 确保应用以中文语言启动（避免 CI 环境根据浏览器语言默认为 en-US
+      // 导致使用中文断言的用例失败）。
+      // 说明：i18n 插件会优先读取 localStorage 中的 "locale"，其次才是
+      // navigator.languages / navigator.language；因此需要在应用脚本加载前
+      // 注入该键，保证首屏即为 zh-CN。
+      window.localStorage.setItem("locale", "zh-CN");
+
       window.localStorage.setItem(
         "user-info",
         JSON.stringify({
@@ -99,4 +106,3 @@ export async function closeExtraneousPanels(
 
 // 引入 expect 以便在此工具模块中使用轮询断言
 import { expect } from "@playwright/test";
-
