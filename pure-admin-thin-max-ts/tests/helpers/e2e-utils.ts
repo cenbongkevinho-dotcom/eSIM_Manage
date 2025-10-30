@@ -107,7 +107,7 @@ export async function closeExtraneousPanels(
     await closeBtn.scrollIntoViewIfNeeded();
     try {
       await closeBtn.click({ trial: true });
-    } catch {}
+    } catch { }
     await closeBtn.click({ force: true });
     await expect
       .poll(async () => await candidate.getAttribute("data-open"), {
@@ -190,7 +190,7 @@ export async function findButtonByTexts(
  * - 直接使用 page.url() 作为 URL 基底在某些场景会是 "about:blank" 或尚未就绪的哈希路由，
  *   这会导致 new URL(path, base) 抛出异常或解析不正确。
  * - 因此优先解析当前页面的 origin；若不可用，则回退到 Playwright 配置中约定的端口：
- *   - CI 环境：vite preview 默认 4173
+ *   - CI 环境：vite dev 默认 8848（本项目已在 CI 下统一使用 dev server）
  *   - 本地开发：vite dev 默认 8848
  * 参数：
  * - page：Playwright Page 实例
@@ -225,8 +225,7 @@ export async function buildInvoicePdfUrl(
 
   // 优先使用环境变量 BASE_URL（若用户在运行时设置了该变量）
   const fallbackBase =
-    process.env.BASE_URL ||
-    (process.env.CI ? "http://localhost:4173" : "http://localhost:8848");
+    process.env.BASE_URL || "http://localhost:8848";
 
   const base = baseOrigin || fallbackBase;
   return new URL(path, base).href;
