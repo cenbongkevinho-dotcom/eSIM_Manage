@@ -73,6 +73,41 @@
             </div>
           </div>
         </div>
+
+        <!-- SmartIcon 离线能力演示（对照：在线 vs SmartIcon，不影响在线测试） -->
+        <div class="demo-card" data-testid="smarticon-demo-card">
+          <div class="card-head">SmartIcon 离线能力演示（在线 vs SmartIcon 对照）</div>
+          <div class="card-body">
+            <div class="compare-row">
+              <span class="compare-label">在线：</span>
+              <div class="icons">
+                <div class="icon-item">
+                  <IconifyIconOnline icon="ri:add-large-line" data-testid="smarticon-online-add" class="demo-icon" />
+                  <span class="label">ri:add-large-line</span>
+                </div>
+                <div class="icon-item">
+                  <IconifyIconOnline icon="ep:calendar" data-testid="smarticon-online-calendar" class="demo-icon" />
+                  <span class="label">ep:calendar</span>
+                </div>
+              </div>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">SmartIcon：</span>
+              <div class="icons">
+                <div class="icon-item">
+                  <!-- SmartIcon：离线优先 + 在线回退 -->
+                  <SmartIcon icon="ri:add-large-line" data-testid="smarticon-smart-add" class="demo-icon" />
+                  <span class="label">ri:add-large-line</span>
+                </div>
+                <div class="icon-item">
+                  <!-- SmartIcon：离线优先 + 在线回退 -->
+                  <SmartIcon icon="ep:calendar" data-testid="smarticon-smart-calendar" class="demo-icon" />
+                  <span class="label">ep:calendar</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -256,5 +291,15 @@ onMounted(() => {
 .label {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
+}
+.compare-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.compare-label {
+  width: 80px;
+  color: var(--el-text-color-secondary);
 }
 </style>
