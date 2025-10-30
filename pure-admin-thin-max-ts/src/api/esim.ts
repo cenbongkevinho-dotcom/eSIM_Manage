@@ -23,6 +23,61 @@ export interface ActivationCode {
   createdAt: string; // 创建时间 ISO 字符串
 }
 
+// 开发环境模拟数据
+const mockData = import.meta.env.DEV ? {
+  // 生成随机日期
+  randomDate(start: Date, end: Date): Date {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  },
+  
+  // 生成随机状态
+  randomStatus<T extends string>(statuses: T[]): T {
+    return statuses[Math.floor(Math.random() * statuses.length)];
+  },
+  
+  // 运营商列表
+  operators: ['op_cn_cmcc', 'op_cn_unicom', 'op_cn_telecom', 'op_global_airalo', 'op_global_holafly'],
+  
+  // 套餐列表
+  plans: ['plan_global_5gb_30d', 'plan_cn_10gb_30d', 'plan_cn_20gb_30d', 'plan_global_2gb_7d', 'plan_global_10gb_30d'],
+  
+  // 生成激活码数据
+  activationCodes: Array.from({ length: 50 }, (_, index) => ({
+    id: `activation_code_${index + 1}`,
+    operatorId: 'op_cn_cmcc', // 使用固定运营商便于测试
+    planId: 'plan_global_5gb_30d', // 使用固定套餐便于测试
+    customerId: `cus_${Math.floor(Math.random() * 50) + 1}`,
+    code: `E${Math.floor(Math.random() * 1000)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 4).toUpperCase()}`,
+    status: index % 3 === 0 ? 'unused' : index % 3 === 1 ? 'used' : 'expired', // 平均分布状态
+    createdAt: new Date(Date.now() - index * 86400000).toISOString() // 连续的日期
+  })),
+  
+  // 生成订阅数据
+  subscriptions: Array.from({ length: 30 }, (_, index) => ({
+    id: `subscription_${index + 1}`,
+    operatorId: index % 5 === 0 ? 'op_cn_cmcc' : index % 5 === 1 ? 'op_cn_unicom' : index % 5 === 2 ? 'op_cn_telecom' : index % 5 === 3 ? 'op_global_airalo' : 'op_global_holafly',
+    planId: 'plan_global_5gb_30d',
+    customerId: `cus_${Math.floor(Math.random() * 50) + 1}`,
+    status: index % 3 === 0 ? 'active' : index % 3 === 1 ? 'inactive' : 'cancelled', // 平均分布状态
+    createdAt: new Date(Date.now() - index * 172800000).toISOString(), // 连续的日期
+    expiresAt: new Date(Date.now() + (30 - index) * 86400000).toISOString()
+  })),
+  
+  // 生成发票数据
+  invoices: Array.from({ length: 20 }, (_, index) => ({
+    id: `invoice_${index + 1}`,
+    subscriptionId: `subscription_${index % 30 + 1}`,
+    customerId: `cus_${Math.floor(Math.random() * 50) + 1}`,
+    operatorId: index % 5 === 0 ? 'op_cn_cmcc' : index % 5 === 1 ? 'op_cn_unicom' : index % 5 === 2 ? 'op_cn_telecom' : index % 5 === 3 ? 'op_global_airalo' : 'op_global_holafly',
+    period: `2024-${String(Math.floor(index / 2) + 1).padStart(2, '0')}`,
+    amount: (index + 1) * 100,
+    currency: 'USD',
+    status: index % 4 === 0 ? 'draft' : index % 4 === 1 ? 'issued' : index % 4 === 2 ? 'paid' : 'overdue',
+    createdAt: new Date(Date.now() - index * 2592000000).toISOString(),
+    dueDate: new Date(Date.now() + (30 - index) * 86400000).toISOString()
+  }))
+} : null;
+
 /**
  * 订阅对象结构
  * 说明：字段取自后端返回示例。若后续规范变更，请同步调整此类型。
@@ -62,6 +117,23 @@ export interface Invoice {
  * @returns ActivationCode 数组
  */
 export const listActivationCodes = (config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV && mockData) {
+    // 模拟请求延迟
+    return new Promise<ActivationCode[]>((resolve) => {
+      setTimeout(() => {
+        // 模拟回调处理
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve(mockData.activationCodes);
+      }, 300);
+    });
+  }
+  
   return http.get<ActivationCode[], any>(
     "/api/activation-codes",
     undefined,
@@ -76,6 +148,21 @@ export const listActivationCodes = (config?: any) => {
  * @returns Subscription 数组
  */
 export const listSubscriptions = (config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV && mockData) {
+    return new Promise<Subscription[]>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve(mockData.subscriptions);
+      }, 300);
+    });
+  }
+  
   return http.get<Subscription[], any>("/api/subscriptions", undefined, config);
 };
 
@@ -86,6 +173,21 @@ export const listSubscriptions = (config?: any) => {
  * @returns 任意结构的数组
  */
 export const listInvoices = (config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV && mockData) {
+    return new Promise<Invoice[]>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve(mockData.invoices);
+      }, 300);
+    });
+  }
+  
   return http.get<Invoice[], any>("/api/billing/invoices", undefined, config);
 };
 
@@ -96,6 +198,26 @@ export const listInvoices = (config?: any) => {
  * @returns Subscription 详情
  */
 export const getSubscription = (id: string, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV && mockData) {
+    return new Promise<Subscription>((resolve, reject) => {
+      setTimeout(() => {
+        const subscription = mockData.subscriptions.find(s => s.id === id);
+        if (subscription) {
+          if (config?.beforeRequestCallback) {
+            config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+          }
+          if (config?.beforeResponseCallback) {
+            config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+          }
+          resolve(subscription);
+        } else {
+          reject(new Error('Subscription not found'));
+        }
+      }, 300);
+    });
+  }
+  
   return http.get<Subscription, any>(
     `/api/subscriptions/${id}`,
     undefined,
@@ -110,6 +232,26 @@ export const getSubscription = (id: string, config?: any) => {
  * @returns 任意结构的发票详情
  */
 export const getInvoice = (id: string, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV && mockData) {
+    return new Promise<Invoice>((resolve, reject) => {
+      setTimeout(() => {
+        const invoice = mockData.invoices.find(i => i.id === id);
+        if (invoice) {
+          if (config?.beforeRequestCallback) {
+            config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+          }
+          if (config?.beforeResponseCallback) {
+            config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+          }
+          resolve(invoice);
+        } else {
+          reject(new Error('Invoice not found'));
+        }
+      }, 300);
+    });
+  }
+  
   return http.get<Invoice, any>(
     `/api/billing/invoices/${encodeURIComponent(id)}`,
     undefined,
@@ -129,6 +271,29 @@ export const getInvoice = (id: string, config?: any) => {
  * @returns 任意结构的对账结果
  */
 export const reconcileInvoice = (id: string, payload: any, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV) {
+    return new Promise<any>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve({
+          success: true,
+          message: '对账成功',
+          data: {
+            differences: [],
+            totalAmount: 1000,
+            reconcileItems: []
+          }
+        });
+      }, 300);
+    });
+  }
+  
   return http.post<any, any>(
     `/api/billing/invoices/${encodeURIComponent(id)}/reconcile`,
     { data: payload },
@@ -148,6 +313,25 @@ export const reconcileInvoice = (id: string, payload: any, config?: any) => {
  * @returns 任意结构的审批结果
  */
 export const approveInvoice = (id: string, payload: any, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV) {
+    return new Promise<any>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve({
+          success: true,
+          message: '审批成功',
+          status: 'approved'
+        });
+      }, 300);
+    });
+  }
+  
   return http.post<any, any>(
     `/api/billing/invoices/${encodeURIComponent(id)}/approve`,
     { data: payload },
@@ -167,6 +351,25 @@ export const approveInvoice = (id: string, payload: any, config?: any) => {
  * @returns 任意结构的签章结果
  */
 export const signInvoice = (id: string, payload: any, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV) {
+    return new Promise<any>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        resolve({
+          success: true,
+          message: '签章成功',
+          status: 'signed'
+        });
+      }, 300);
+    });
+  }
+  
   return http.post<any, any>(
     `/api/billing/invoices/${encodeURIComponent(id)}/sign`,
     { data: payload },
@@ -185,6 +388,23 @@ export const signInvoice = (id: string, payload: any, config?: any) => {
  * @returns Blob 对象（二进制 PDF）
  */
 export const downloadInvoicePdf = (id: string, config?: any) => {
+  // 开发环境返回模拟数据
+  if (import.meta.env.DEV) {
+    return new Promise<Blob>((resolve) => {
+      setTimeout(() => {
+        if (config?.beforeRequestCallback) {
+          config.beforeRequestCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id', 'Authorization': 'Bearer mock-token' } });
+        }
+        if (config?.beforeResponseCallback) {
+          config.beforeResponseCallback({ headers: { 'X-Correlation-ID': 'mock-correlation-id' } } as any);
+        }
+        // 创建一个简单的PDF文件（实际应用中应该返回真实的PDF）
+        const blob = new Blob(['Mock PDF Content for invoice ' + id], { type: 'application/pdf' });
+        resolve(blob);
+      }, 300);
+    });
+  }
+  
   const axiosConfig = { responseType: "blob", ...(config || {}) };
   return http.get<Blob, any>(
     `/api/billing/invoices/${encodeURIComponent(id)}/pdf`,

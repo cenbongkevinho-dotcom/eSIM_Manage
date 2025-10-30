@@ -3,6 +3,12 @@ import router from "./router";
 import { setupStore } from "@/store";
 import { getPlatformConfig } from "./config";
 import { MotionPlugin } from "@vueuse/motion";
+// 在开发环境中导入mock服务
+if (import.meta.env.DEV) {
+  import("@/mock/index").catch(err => {
+    console.warn("Mock service failed to load:", err);
+  });
+}
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
 import { useElementPlus } from "@/plugins/elementPlus";

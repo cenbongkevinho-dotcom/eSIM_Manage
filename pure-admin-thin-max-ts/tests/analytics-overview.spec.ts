@@ -141,9 +141,50 @@ async function setupApiMocks(page: Page) {
 }
 
 /**
+ * 函数：installCsvInterceptors
+ * 功能：在页面初始化阶段注入拦截器，捕获通过 Blob + URL.createObjectURL 触发的下载内容与文件名。
+ * 策略：
+ *  - 覆写 URL.createObjectURL，保存最近创建的 Blob（window.__csvIntercept.lastBlob）。
+ *  - 包装 HTMLAnchorElement.prototype.click，记录 a.download 的文件名（window.__csvIntercept.lastFilename）。
+ * 参数：page — Playwright Page 实例
+ * 返回：Promise<void>
+ * 兼容性：三端浏览器一致；不依赖 Playwright 的 download 事件，可作为回退断言基础。
+ */
+async function installCsvInterceptors(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // 全局记录对象
+    (window as any).__csvIntercept = {
+      lastBlob: undefined,
+      lastFilename: undefined
+    };
+
+    // 备份原始方法
+    const originalCreateObjectURL = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = function (blob: Blob) {
+      try {
+        (window as any).__csvIntercept.lastBlob = blob;
+      } catch {}
+      return originalCreateObjectURL(blob);
+    } as typeof URL.createObjectURL;
+
+    // 记录下载文件名
+    const originalAnchorClick = (HTMLAnchorElement.prototype as any).click;
+    (HTMLAnchorElement.prototype as any).click = function (...args: any[]) {
+      try {
+        (window as any).__csvIntercept.lastFilename =
+          (this as HTMLAnchorElement).download;
+      } catch {}
+      return originalAnchorClick.apply(this, args);
+    };
+  });
+}
+
+/**
  * 导航到 eSIM Analytics Overview 页面，并等待核心 UI 可见以确保页面准备就绪。
  */
 async function gotoOverview(page: Page) {
+  // 在页面脚本执行前注入拦截器，以确保能捕获 Blob 与文件名
+  await installCsvInterceptors(page);
   await ensureDevAuth(page);
   await setupApiMocks(page);
   await page.goto("/#/esim/analytics/overview", {
@@ -171,7 +212,7 @@ async function gotoOverview(page: Page) {
           .toBe("false");
       }
     }
-  } catch { }
+  } catch {}
   await page.getByTestId("filters-operator").waitFor({ state: "visible" });
   await page
     .getByTestId("cards-activationCodes-total")
@@ -193,6 +234,43 @@ async function assertInitialCards(page: Page) {
   expect(subsTotal?.trim()).not.toEqual("");
 }
 
+/**
+ * 函数：assertCsvByInterceptors
+ * 功能：使用拦截器记录的 Blob 与文件名进行 CSV 导出回退断言，不依赖 download 事件。
+ * 策略：
+ *  - 通过 window.__csvIntercept.lastFilename 断言文件名模式；
+ *  - 通过 lastBlob.text() 校验内容具有 BOM（\ufeff）与至少两列（包含逗号），且至少两行（含表头与数据行）。
+ * 参数：page — Playwright Page 实例；pattern — 文件名的正则表达式模式
+ * 返回：Promise<void>
+ * 兼容性：三端一致；适用于无头模式或浏览器内置下载事件不触发的情况。
+ */
+async function assertCsvByInterceptors(
+  page: Page,
+  pattern: RegExp
+): Promise<void> {
+  // 读取文件名与文本内容
+  const { filename, text } = await page.evaluate(async () => {
+    const itc = (window as any).__csvIntercept || {};
+    const blob: Blob | undefined = itc.lastBlob;
+    const filename: string | undefined = itc.lastFilename;
+    const text: string = blob ? await blob.text() : "";
+    return { filename, text };
+  });
+
+  // 断言文件名匹配约定模式
+  expect(filename, "应记录到导出的文件名").toBeTruthy();
+  expect(filename!).toMatch(pattern);
+
+  // 断言内容基本结构
+  expect(text.length, "CSV 内容应非空").toBeGreaterThan(0);
+  expect(text[0], "CSV 应以 BOM 开头（UTF-8）").toBe("\ufeff");
+  const withoutBom = text.slice(1);
+  const lines = withoutBom.split(/\r?\n/).filter(l => l.length > 0);
+  expect(lines.length, "CSV 至少包含表头与一行数据").toBeGreaterThan(1);
+  const headerCols = lines[0].split(",");
+  expect(headerCols.length, "CSV 应至少含两列").toBeGreaterThanOrEqual(2);
+}
+
 test.describe("Analytics Overview", () => {
   test.setTimeout(60_000);
 
@@ -203,21 +281,37 @@ test.describe("Analytics Overview", () => {
     // 导出“按月新订阅”CSV
     const dlMonthlyPromise: Promise<Download> = page.waitForEvent("download");
     await page.getByTestId("export-monthly-csv").click();
-    const dlMonthly = await dlMonthlyPromise;
-    const monthlyFilename = await dlMonthly.suggestedFilename();
-    // 页面导出文件名使用 ISO 格式并替换了分隔符，这里匹配形如 2025-10-30-14-52-33
-    expect(monthlyFilename).toMatch(
-      /monthly-new-subscriptions-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
-    );
+    // 首选断言：download 事件 + 文件名模式
+    try {
+      const dlMonthly = await dlMonthlyPromise;
+      const monthlyFilename = await dlMonthly.suggestedFilename();
+      // 页面导出文件名使用 ISO 格式并替换了分隔符，这里匹配形如 2025-10-30-14-52-33
+      expect(monthlyFilename).toMatch(
+        /monthly-new-subscriptions-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
+      );
+    } catch {
+      // 回退断言：拦截器记录的文件名与内容
+      await assertCsvByInterceptors(
+        page,
+        /monthly-new-subscriptions-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
+      );
+    }
 
     // 导出“运营商 Top5”CSV
     const dlOpsPromise: Promise<Download> = page.waitForEvent("download");
     await page.getByTestId("export-operators-csv").click();
-    const dlOps = await dlOpsPromise;
-    const opsFilename = await dlOps.suggestedFilename();
-    expect(opsFilename).toMatch(
-      /operators-top5-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
-    );
+    try {
+      const dlOps = await dlOpsPromise;
+      const opsFilename = await dlOps.suggestedFilename();
+      expect(opsFilename).toMatch(
+        /operators-top5-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
+      );
+    } catch {
+      await assertCsvByInterceptors(
+        page,
+        /operators-top5-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.csv/
+      );
+    }
   });
 
   test("应用筛选器（operator/status/codeStatus/datePreset/cardsScope）并刷新卡片", async ({ page }) => {
