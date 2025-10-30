@@ -90,3 +90,20 @@ icons.push(["ri/drop-fill", riIcons.icons["drop-fill"]]);
 icons.forEach(([name, icon]) => {
   addIcon(name as string, icon as any);
 });
+
+/**
+ * 导出离线图标键名集合与查询方法，供运行时“离线优先 + 在线回退”的智能渲染使用。
+ * 说明：
+ * - OFFLINE_ICON_KEYS：以斜杠风格（如 "ep/close"、"ri/search-line"）注册的键名集合；
+ * - isOfflineIconRegistered：判断某个斜杠风格键名是否已在离线运行时注册。
+ */
+export const OFFLINE_ICON_KEYS = new Set<string>(icons.map(([name]) => name as string));
+
+/**
+ * 判断指定斜杠风格图标键名是否已完成离线注册
+ * @param name 斜杠风格图标键名（如 "ep/close"、"ri/search-line"）
+ * @returns 是否已离线注册（boolean）
+ */
+export function isOfflineIconRegistered(name: string): boolean {
+  return OFFLINE_ICON_KEYS.has(name);
+}

@@ -38,11 +38,14 @@ Object.keys(directives).forEach(key => {
 import {
   IconifyIconOffline,
   IconifyIconOnline,
-  FontIcon
+  FontIcon,
+  SmartIcon
 } from "./components/ReIcon";
 app.component("IconifyIconOffline", IconifyIconOffline);
 app.component("IconifyIconOnline", IconifyIconOnline);
 app.component("FontIcon", FontIcon);
+// 全局注册智能图标组件：业务层写冒号风格，组件自动离线优先 + 在线回退
+app.component("SmartIcon", SmartIcon);
 
 // 全局注册按钮级别权限组件
 import { Auth } from "@/components/ReAuth";
