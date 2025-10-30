@@ -26,11 +26,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'pure-admin-thin-max-ts/.nvmrc'
+          check-latest: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 9
+          run_install: false
 
       - name: Get pnpm store path
         id: pnpm-store
@@ -65,6 +67,8 @@ jobs:
       - name: Run icon smoke tests (Chromium)
         env:
           CI: 'true'
+          # Playwright 在 CI 下使用 vite preview，默认端口为 4173
+          BASE_URL: 'http://127.0.0.1:4173'
         run: pnpm test:icon:smoke
 
       - name: Upload Playwright HTML report

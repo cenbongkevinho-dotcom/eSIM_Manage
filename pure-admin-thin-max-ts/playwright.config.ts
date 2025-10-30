@@ -29,7 +29,11 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   /* 基础 URL，允许通过环境变量覆盖（如 CI 场景） */
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:8848",
+    // 函数级注释：根据环境选择基础 URL
+    // - 本地开发：默认 8848（由 .env.development 配置）
+    // - CI 云端：推荐使用 vite preview 默认端口 4173，更稳定、资源占用更低
+    baseURL:
+      process.env.BASE_URL || (process.env.CI ? "http://localhost:4173" : "http://localhost:8848"),
     headless: true,
     /*
      * 失败调试辅助：
@@ -41,17 +45,38 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure"
   },
-  /* 仅启用 Chromium */
+  /* 浏览器项目：默认启用 Chromium，并追加 Firefox / WebKit 以便本地跨浏览器验证 */
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] }
+    },
+    /**
+     * Firefox 项目
+     * 用途：在 Gecko 引擎下验证图标渲染与交互逻辑，补充跨浏览器覆盖。
+     */
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] }
+    },
+    /**
+     * WebKit 项目（Safari）
+     * 用途：在 WebKit 引擎下验证图标渲染与交互逻辑，避免特性差异导致的回归。
+     */
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] }
     }
   ],
-  /* 本地运行时如已有 dev server 则复用，避免端口占用失败 */
+  /* Web 服务器：
+   * - 本地：启动 Vite 开发服务器（pnpm dev），端口 8848，可复用已存在的服务
+   * - CI：使用构建后的 vite preview 静态预览，端口 4173，更适合云端稳定运行
+   */
   webServer: {
-    command: "pnpm dev",
-    url: process.env.BASE_URL || "http://localhost:8848",
+    // 函数级注释：在 CI 环境下切换为预览模式，避免 dev server 的热更新与文件监听在云端造成不稳定
+    command: process.env.CI ? "pnpm preview:build" : "pnpm dev",
+    url:
+      process.env.BASE_URL || (process.env.CI ? "http://localhost:4173" : "http://localhost:8848"),
     reuseExistingServer: true,
     /**
      * CI 环境下提升 dev server 启动等待时间，避免云端冷启动导致的端口监听延迟：
