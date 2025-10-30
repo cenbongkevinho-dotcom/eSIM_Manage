@@ -55,7 +55,7 @@ const { t } = useI18n();
     class="center-collapse"
     @click="toggleClick"
   >
-    <IconifyIconOnline
+    <SmartIcon
       :icon="ArrowLeft"
       :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']"
       :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }"

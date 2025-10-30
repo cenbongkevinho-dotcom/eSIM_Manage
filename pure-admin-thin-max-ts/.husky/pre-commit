@@ -34,6 +34,11 @@ else
       echo "[icon-audit] 发现问题，已阻止提交。请根据输出修复后重试。"
       exit 1
     fi
+    # 视图在线组件禁用审计（dev 目录除外），违规时阻断提交
+    if ! pnpm run -s audit:views:no-online; then
+      echo "[icon-audit] 视图中检测到对 IconifyIconOnline 的直接使用（dev 目录除外），已阻止提交。"
+      exit 1
+    fi
     echo "[icon-audit] 通过"
   else
     echo "[icon-audit] 跳过（本次提交未涉及前端源码/脚本/依赖）"

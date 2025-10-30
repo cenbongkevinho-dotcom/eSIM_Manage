@@ -62,10 +62,15 @@ jobs:
       - name: Run audit:icon and save log
         run: pnpm audit:icon | tee audit-icon.log
 
+      - name: Run audit:views:no-online and save log
+        run: pnpm audit:views:no-online | tee audit-views-no-online.log
+
       - name: Upload audit log artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: icon-audit-report
-          path: pure-admin-thin-max-ts/audit-icon.log
+          path: |
+            pure-admin-thin-max-ts/audit-icon.log
+            pure-admin-thin-max-ts/audit-views-no-online.log
           if-no-files-found: ignore

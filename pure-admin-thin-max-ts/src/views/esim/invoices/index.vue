@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { listInvoices } from "@/api/esim";
+import { listInvoices, downloadInvoicePdf } from "@/api/esim";
 import DebugInfo from "@/views/esim/components/DebugInfo.vue";
+import { ElMessage } from "element-plus";
 
 defineOptions({ name: "Invoices" });
 
@@ -12,6 +13,7 @@ const responseData = ref<any>(null);
 const errorMsg = ref<string | null>(null);
 const router = useRouter();
 const inputId = ref("");
+const downloadLoading = ref(false);
 
 /**
  * 拉取发票列表并展示响应的可观察性ID。
@@ -55,6 +57,58 @@ function goInvoiceDetail(id: string) {
   if (!target) return;
   router.push(`/esim/billing/invoices/${encodeURIComponent(target)}`);
 }
+
+/**
+ * 触发浏览器下载 Blob 文件的工具函数。
+ * @param blob Blob 对象
+ * @param filename 下载文件名
+ */
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 直接在列表页按输入的发票ID下载 PDF。
+ * 说明：
+ * - 通过 downloadInvoicePdf(id, { responseType: 'blob' }) 获取二进制 Blob；
+ * - 从响应头捕获 X-Correlation-ID 并展示；
+ * - 成功后使用临时链接触发浏览器下载。
+ */
+async function downloadPdfById() {
+  const target = (inputId.value || "").trim();
+  if (!target) {
+    ElMessage.warning("请先输入发票ID");
+    return;
+  }
+  downloadLoading.value = true;
+  errorMsg.value = null;
+  try {
+    const blob = await downloadInvoicePdf(target, {
+      beforeResponseCallback: response => {
+        const headers = response.headers as Record<string, string> | undefined;
+        if (headers) {
+          correlationId.value =
+            headers["x-correlation-id"] || headers["X-Correlation-ID"] || "";
+        }
+      }
+    });
+    responseData.value = { size: blob.size, type: blob.type };
+    downloadBlob(blob, `invoice-${target}.pdf`);
+    ElMessage.success("PDF 下载开始");
+  } catch (e: any) {
+    errorMsg.value = e?.message || String(e);
+    ElMessage.error(errorMsg.value);
+  } finally {
+    downloadLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -77,6 +131,13 @@ function goInvoiceDetail(id: string) {
         @click="goInvoiceDetail(inputId)"
       >
         查看详情
+      </el-button>
+      <el-button
+        type="success"
+        :loading="downloadLoading"
+        @click="downloadPdfById"
+      >
+        下载 PDF
       </el-button>
     </div>
 

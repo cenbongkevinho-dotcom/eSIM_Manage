@@ -18,7 +18,8 @@ export default {
       subscriptions: "订阅",
       subscriptionDetail: "订阅详情",
       invoices: "发票",
-      invoiceDetail: "发票详情"
+      invoiceDetail: "发票详情",
+      analytics: "数据概览"
     }
   },
   common: {
@@ -34,6 +35,7 @@ export default {
       submitApproval: "提交审批",
       sign: "签章",
       downloadPdf: "下载 PDF",
+      previewPdf: "预览 PDF",
       language: "语言",
       logout: "退出系统",
       closeSettings: "关闭配置",
@@ -52,7 +54,8 @@ export default {
     },
     columns: {
       createTime: "创建时间",
-      operation: "操作"
+      operation: "操作",
+      number: "数量"
     },
     dropdown: {
       language: {
@@ -341,7 +344,63 @@ export default {
         reconcileSuccess: "对账成功",
         approveSubmitted: "审批已提交",
         signCompleted: "签章完成",
-        pdfDownloadStarted: "PDF 下载已开始"
+        pdfDownloadStarted: "PDF 下载已开始",
+        pdfPreviewOpened: "已在新标签页打开 PDF 预览"
+      }
+    },
+    analytics: {
+      overview: {
+        title: "数据概览（聚合现有接口：激活码/订阅/发票）",
+        cards: {
+          activationCodes: "激活码",
+          subscriptions: "订阅",
+          invoices: "发票",
+          unused: "未使用",
+          used: "已使用",
+          expired: "已过期",
+          active: "启用",
+          inactive: "停用",
+          cancelled: "已取消"
+        },
+        chart: {
+          monthlyNewSubscriptions: "每月新增订阅（按 createdAt 聚合）",
+          operatorsTop: "运营商订阅数量排行（Top5）",
+          noData: "暂无数据"
+        },
+        buttons: {
+          refresh: "刷新数据",
+          exportMonthlyCsv: "导出新增订阅 CSV",
+          exportOperatorsCsv: "导出运营商 Top5 CSV"
+        },
+        filters: {
+          operator: "运营商",
+          status: "状态",
+          codeStatus: "激活码状态",
+          timeRange: "时间范围",
+          groupBy: "分组维度",
+          allOperators: "全部运营商",
+          allStatus: "全部状态",
+          cardsScope: "卡片统计范围",
+          scope: {
+            overall: "总览",
+            filtered: "按筛选"
+          },
+          quick: {
+            last7Days: "近7天",
+            last30Days: "近30天",
+            last90Days: "近90天",
+            custom: "自定义"
+          },
+          group: {
+            day: "按日",
+            week: "按周",
+            month: "按月"
+          },
+          actions: {
+            apply: "应用筛选",
+            reset: "重置"
+          }
+        }
       }
     }
   }

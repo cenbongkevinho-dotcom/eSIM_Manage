@@ -202,3 +202,45 @@ useRenderIcon("IF-\ue615 uni"); // unicode 示例，需替换为真实值
 ---
 
 如需我直接开始扩充 iconfont 库并进行小范围替换，请提供你偏好的图标名称与风格（font_class/unicode）。我将基于本审计清单生成 PR 并逐步推进批量替换。
+### 1.7 视图在线组件禁用规则（dev 目录除外）
+
+- 目的：确保业务视图统一通过 `SmartIcon/useRenderIcon` 执行“离线优先 + 在线回退”，避免直接使用在线组件绕过策略。
+- 本地提交：`pre-commit` 已在 `audit:icon` 通过后继续执行 `audit:views:no-online`，一旦检测到 `src/views`（除 `src/views/dev`）中直接使用 `IconifyIconOnline` 将阻断提交。
+- CI 审计：`/.github/workflows/icon-audit.yml` 已新增步骤执行 `pnpm audit:views:no-online`，并与 `audit:icon` 一同上传日志为 Artifact：
+  - `pure-admin-thin-max-ts/audit-icon.log`
+  - `pure-admin-thin-max-ts/audit-views-no-online.log`
+- 脚本入口：`pnpm audit:views:no-online`（内部指向工作区根目录 `scripts/audit-no-online-icons-in-views.mjs --root ..`）。
+
+- 静态规则：ESLint 在 `src/views/**/*.vue`（排除 `src/views/dev/**`）中启用了模板 AST 限制规则，禁止直接使用 `IconifyIconOnline`。如命中将报错并在本地提交阶段被 lint-staged 捕捉到。
+
+  规则片段（位于 `eslint.config.js` 的 Flat Config 末尾）：
+
+  ```js
+  {
+    files: ["src/views/**/*.vue"],
+    ignores: ["src/views/dev/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "VElement[name.name='IconifyIconOnline']",
+          message:
+            "禁止在 views 中直接使用 IconifyIconOnline（dev 目录除外），请改为 SmartIcon/useRenderIcon 以遵循‘离线优先 + 在线回退’策略。"
+        }
+      ]
+    }
+  }
+  ```
+
+  仅验证该规则是否触发（临时屏蔽 prettier 校验）可执行：
+
+  ```bash
+  pnpm exec eslint "src/views/**/*.vue" --max-warnings=0 --rule '{"prettier/prettier":0}'
+  ```
+
+附：E2E 测试中通过 `data-render-source` 标记区分图标渲染来源（离线/在线），便于自动化断言：
+- `IconifyIconOffline` 根节点注入 `data-render-source="offline"`
+- `IconifyIconOnline` 根节点注入 `data-render-source="online"`
+- `SmartIcon` 离线优先 + 在线回退：
+  - 离线命中：`data-render-source="offline"`
+  - 在线回退：`data-render-source="online"`

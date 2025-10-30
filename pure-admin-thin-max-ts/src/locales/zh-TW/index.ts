@@ -18,7 +18,8 @@ export default {
       subscriptions: "訂閱",
       subscriptionDetail: "訂閱詳情",
       invoices: "發票",
-      invoiceDetail: "發票詳情"
+      invoiceDetail: "發票詳情",
+      analytics: "數據概覽"
     }
   },
   common: {
@@ -34,6 +35,7 @@ export default {
       submitApproval: "提交審批",
       sign: "簽章",
       downloadPdf: "下載 PDF",
+      previewPdf: "預覽 PDF",
       language: "語言",
       logout: "退出系統",
       closeSettings: "關閉配置",
@@ -52,7 +54,8 @@ export default {
     },
     columns: {
       createTime: "建立時間",
-      operation: "操作"
+      operation: "操作",
+      number: "數量"
     },
     dropdown: {
       language: {
@@ -188,6 +191,7 @@ export default {
         color: "標籤顏色",
         sort: "排序",
         status: "狀態",
+        codeStatus: "啟用碼狀態",
         remark: "備註",
         placeholders: {
           label: "請輸入字典標籤",
@@ -277,6 +281,7 @@ export default {
             id: "套餐編號",
             name: "套餐名稱",
             status: "狀態",
+            codeStatus: "啟用碼狀態",
             remark: "備註",
             operation: "操作"
           },
@@ -341,7 +346,63 @@ export default {
         reconcileSuccess: "對帳成功",
         approveSubmitted: "審批已提交",
         signCompleted: "簽章完成",
-        pdfDownloadStarted: "PDF 下載已開始"
+        pdfDownloadStarted: "PDF 下載已開始",
+        pdfPreviewOpened: "已在新分頁打開 PDF 預覽"
+      }
+    },
+    analytics: {
+      overview: {
+        title: "概覽（基於現有 API 的彙總：啟用碼／訂閱／發票）",
+        cards: {
+          activationCodes: "啟用碼",
+          subscriptions: "訂閱",
+          invoices: "發票",
+          unused: "未使用",
+          used: "已使用",
+          expired: "已過期",
+          active: "活躍",
+          inactive: "停用",
+          cancelled: "已取消"
+        },
+        chart: {
+          monthlyNewSubscriptions: "每月新增訂閱（依 createdAt 彙總）",
+          operatorsTop: "訂閱數 Top 5 的營運商",
+          noData: "暫無數據"
+        },
+        buttons: {
+          refresh: "重新整理",
+          exportMonthlyCsv: "匯出每月新增訂閱 CSV",
+          exportOperatorsCsv: "匯出營運商 Top5 CSV"
+        },
+        filters: {
+          operator: "營運商",
+          status: "狀態",
+          codeStatus: "啟用碼狀態",
+          timeRange: "時間範圍",
+          groupBy: "分組方式",
+          allOperators: "全部營運商",
+          allStatus: "全部狀態",
+          cardsScope: "卡片統計範圍",
+          scope: {
+            overall: "全量",
+            filtered: "已篩選"
+          },
+          quick: {
+            last7Days: "近7天",
+            last30Days: "近30天",
+            last90Days: "近90天",
+            custom: "自訂"
+          },
+          group: {
+            day: "按日",
+            week: "按週",
+            month: "按月"
+          },
+          actions: {
+            apply: "套用",
+            reset: "重置"
+          }
+        }
       }
     }
   }

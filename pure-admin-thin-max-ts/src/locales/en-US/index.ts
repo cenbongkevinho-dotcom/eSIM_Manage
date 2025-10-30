@@ -18,7 +18,8 @@ export default {
       subscriptions: "Subscriptions",
       subscriptionDetail: "Subscription Detail",
       invoices: "Invoices",
-      invoiceDetail: "Invoice Detail"
+      invoiceDetail: "Invoice Detail",
+      analytics: "Analytics Overview"
     }
   },
   common: {
@@ -34,6 +35,7 @@ export default {
       submitApproval: "Submit Approval",
       sign: "Sign",
       downloadPdf: "Download PDF",
+      previewPdf: "Preview PDF",
       language: "Language",
       logout: "Logout",
       closeSettings: "Close Settings",
@@ -52,7 +54,8 @@ export default {
     },
     columns: {
       createTime: "Created At",
-      operation: "Actions"
+      operation: "Actions",
+      number: "Count"
     },
     dropdown: {
       language: {
@@ -193,6 +196,7 @@ export default {
         color: "Tag Color",
         sort: "Sort Order",
         status: "Status",
+        codeStatus: "Activation Code Status",
         remark: "Remark",
         placeholders: {
           label: "Please enter dictionary label",
@@ -280,6 +284,7 @@ export default {
             id: "Package ID",
             name: "Package Name",
             status: "Status",
+            codeStatus: "Activation Code Status",
             remark: "Remark",
             operation: "Actions"
           },
@@ -348,7 +353,65 @@ export default {
         reconcileSuccess: "Reconcile succeeded",
         approveSubmitted: "Approval submitted",
         signCompleted: "Sign completed",
-        pdfDownloadStarted: "PDF download started"
+        pdfDownloadStarted: "PDF download started",
+        pdfPreviewOpened: "PDF preview opened in a new tab"
+      }
+    },
+    analytics: {
+      overview: {
+        title:
+          "Analytics Overview (Aggregate existing APIs: Activation Codes / Subscriptions / Invoices)",
+        cards: {
+          activationCodes: "Activation Codes",
+          subscriptions: "Subscriptions",
+          invoices: "Invoices",
+          unused: "Unused",
+          used: "Used",
+          expired: "Expired",
+          active: "Active",
+          inactive: "Inactive",
+          cancelled: "Cancelled"
+        },
+        chart: {
+          monthlyNewSubscriptions:
+            "Monthly New Subscriptions (grouped by createdAt)",
+          operatorsTop: "Top Operators by Subscriptions (Top 5)",
+          noData: "No data"
+        },
+        buttons: {
+          refresh: "Refresh",
+          exportMonthlyCsv: "Export Monthly New Subscriptions CSV",
+          exportOperatorsCsv: "Export Operators Top 5 CSV"
+        },
+        filters: {
+          operator: "Operator",
+          status: "Status",
+          codeStatus: "Activation Code Status",
+          timeRange: "Time Range",
+          groupBy: "Grouping",
+          allOperators: "All Operators",
+          allStatus: "All Statuses",
+          cardsScope: "Cards Scope",
+          scope: {
+            overall: "Overall",
+            filtered: "Filtered"
+          },
+          quick: {
+            last7Days: "Last 7 Days",
+            last30Days: "Last 30 Days",
+            last90Days: "Last 90 Days",
+            custom: "Custom"
+          },
+          group: {
+            day: "By Day",
+            week: "By Week",
+            month: "By Month"
+          },
+          actions: {
+            apply: "Apply",
+            reset: "Reset"
+          }
+        }
       }
     }
   }

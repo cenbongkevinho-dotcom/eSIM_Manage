@@ -254,7 +254,7 @@ onMounted(() => {
         <div class="flex justify-between w-full px-3 pt-5 pb-4">
           <div class="flex">
             <span :class="iconClass">
-              <IconifyIconOnline
+              <SmartIcon
                 v-tippy="{
                   content: t(
                     'views.tenant.package.index.sidePanel.tooltips.close'
@@ -268,7 +268,7 @@ onMounted(() => {
               />
             </span>
             <span :class="[iconClass, 'ml-2']">
-              <IconifyIconOnline
+              <SmartIcon
                 v-tippy="{
                   content: t(
                     'views.tenant.package.index.sidePanel.tooltips.saveMenu'

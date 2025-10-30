@@ -22,7 +22,7 @@ import {
   hasClass
 } from "@pureadmin/utils";
 
-// 统一使用 Iconify 在线组件，采用冒号命名
+// 统一使用冒号风格命名，运行时由 SmartIcon/useRenderIcon 离线优先 + 在线回退渲染
 const Fullscreen = "ri:fullscreen-fill";
 const CloseAllTags = "ri:subtract-line";
 const CloseOtherTags = "ri:text-spacing";
@@ -35,7 +35,7 @@ const Close = "ep:close";
  * 标签页管理 Hook
  * 功能：
  * - 管理标签页的显隐、滚动与关闭逻辑
- * - 提供右键菜单与功能按钮文案、图标（统一采用 Iconify 冒号命名与在线组件）
+ * - 提供右键菜单与功能按钮文案、图标（统一冒号命名，SmartIcon 离线优先 + 在线回退）
  * - 响应国际化语言变化更新菜单文案
  */
 export function useTags() {

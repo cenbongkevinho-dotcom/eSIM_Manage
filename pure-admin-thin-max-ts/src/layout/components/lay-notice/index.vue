@@ -28,7 +28,7 @@ const getLabel = computed(
     >
       <el-badge :value="Number(noticesNum) === 0 ? '' : noticesNum" :max="99">
         <span class="header-notice-icon">
-          <IconifyIconOnline :icon="BellIcon" />
+          <SmartIcon :icon="BellIcon" />
         </span>
       </el-badge>
     </span>

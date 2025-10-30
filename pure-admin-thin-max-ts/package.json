@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "preview:build": "pnpm build && vite preview",
     "typecheck": "tsc --noEmit && vue-tsc --noEmit --skipLibCheck",
+    "typecheck:watch": "sh -c 'tsc --noEmit --watch & vue-tsc --noEmit --watch --skipLibCheck'",
     "svgo": "svgo -f . -r",
     "clean:cache": "rimraf .eslintcache && rimraf pnpm-lock.yaml && rimraf node_modules && pnpm store prune && pnpm install",
     "lint:eslint": "eslint --cache --max-warnings 0  \"{src,mock,build}/**/*.{vue,js,ts,tsx}\" --fix",
@@ -20,8 +21,10 @@
     "lint": "pnpm lint:eslint && pnpm lint:prettier && pnpm lint:stylelint",
     "ci:i18n": "node scripts/check-i18n-keys.mjs",
     "audit:icon": "node ../scripts/audit-icon-usage.mjs --root ..",
+    "audit:views:no-online": "node ../scripts/audit-no-online-icons-in-views.mjs --root ..",
     "test:install": "playwright install --with-deps chromium",
     "test:icon:smoke": "playwright test -c playwright.config.ts --project=chromium",
+    "test:e2e": "playwright test -c playwright.config.ts",
     "test:report": "playwright show-report",
     "prepare": "husky",
     "preinstall": "npx only-allow pnpm"

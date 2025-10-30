@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
 <template>
   <div v-if="!showTags" ref="containerDom" class="tags-view">
     <span v-show="isShowArrow" class="arrow-left">
-      <IconifyIconOnline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
+      <SmartIcon :icon="ArrowLeftSLine" @click="handleScroll(200)" />
     </span>
     <div
       ref="scrollbarDom"
@@ -619,7 +619,7 @@ onBeforeUnmount(() => {
               class="el-icon-close"
               @click.stop="deleteMenu(item)"
             >
-              <IconifyIconOnline :icon="Close" />
+              <SmartIcon :icon="Close" />
             </span>
             <span
               v-if="showModel !== 'card'"
@@ -639,7 +639,7 @@ onBeforeUnmount(() => {
               class="chrome-close-btn"
               @click.stop="deleteMenu(item)"
             >
-              <IconifyIconOnline :icon="Close" />
+              <SmartIcon :icon="Close" />
             </span>
             <span class="chrome-tab-divider" />
           </div>
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <span v-show="isShowArrow" class="arrow-right">
-      <IconifyIconOnline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
+      <SmartIcon :icon="ArrowRightSLine" @click="handleScroll(-200)" />
     </span>
     <!-- 右键菜单按钮 -->
     <transition name="el-zoom-in-top">
@@ -664,7 +664,7 @@ onBeforeUnmount(() => {
           style="display: flex; align-items: center"
         >
           <li v-if="item.show" @click="selectTag(key, item)">
-            <IconifyIconOnline :icon="item.icon" />
+            <SmartIcon :icon="item.icon" />
             {{ item.text }}
           </li>
         </div>
@@ -677,7 +677,7 @@ onBeforeUnmount(() => {
       @command="handleCommand"
     >
       <span class="arrow-down">
-        <IconifyIconOnline :icon="ArrowDown" class="dark:text-white" />
+        <SmartIcon :icon="ArrowDown" class="dark:text-white" />
       </span>
       <template #dropdown>
         <el-dropdown-menu>
@@ -688,7 +688,7 @@ onBeforeUnmount(() => {
             :divided="item.divided"
             :disabled="item.disabled"
           >
-            <IconifyIconOnline :icon="item.icon" />
+            <SmartIcon :icon="item.icon" />
             {{ item.text }}
           </el-dropdown-item>
         </el-dropdown-menu>

@@ -7,7 +7,7 @@ export default {
   component: Layout,
   redirect: "/welcome",
   meta: {
-    // 统一为在线冒号风格，便于通过 Iconify API 按需加载
+    // 统一为冒号风格，运行时由 useRenderIcon/SmartIcon 离线优先 + 在线回退渲染
     icon: "ep:home-filled",
     // 使用 i18n 路由标题键
     title: "routes.home",

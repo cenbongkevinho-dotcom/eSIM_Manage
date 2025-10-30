@@ -1,8 +1,7 @@
 /**
  * 说明：浮动按钮类型定义
- * 推荐使用 Iconify 在线冒号风格的图标名（例如：`ri:search-line`、`ep:close`），无需预注册即可渲染。
- * 若需要在无网络环境下使用离线渲染，可在 offlineIcon.ts 中按斜杠风格（如 `ri/search-line`）预注册，
- * 并在渲染层选择 IconifyIconOffline 组件达到兜底效果。
+ * 推荐使用冒号风格的图标名（例如：`ri:search-line`、`ep:close`）。运行时由 SmartIcon/useRenderIcon 离线优先渲染，
+ * 未命中离线键名时自动在线回退；若需增强离线覆盖，可在 offlineIcon.ts 中按斜杠风格预注册常用图标。
  */
 
 export interface floatBtnsType {

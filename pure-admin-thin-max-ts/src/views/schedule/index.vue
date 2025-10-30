@@ -84,10 +84,7 @@ const {
               >
                 <template #icon>
                   <!-- 使用 SmartIcon（离线优先 + 在线回退）以提升云端/受限网络环境下的稳定性 -->
-                  <SmartIcon
-                    icon="ri:add-large-line"
-                    style="color: #8e9096"
-                  />
+                  <SmartIcon icon="ri:add-large-line" style="color: #8e9096" />
                 </template>
               </el-button>
             </div>

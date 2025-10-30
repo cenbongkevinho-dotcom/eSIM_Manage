@@ -40,7 +40,7 @@ const { t } = useI18n();
     "
     @click="toggleClick"
   >
-    <IconifyIconOnline
+    <SmartIcon
       :icon="isActive ? MenuFold : MenuUnfold"
       class="inline-block! align-middle hover:text-primary dark:hover:text-white!"
     />

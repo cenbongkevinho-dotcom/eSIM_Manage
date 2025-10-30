@@ -9,7 +9,7 @@ export const routerArrays: Array<RouteConfigs> =
           name: "Welcome",
           meta: {
             title: "首页",
-            // 统一为在线冒号风格，确保通过 Iconify 在线组件渲染
+            // 统一为冒号风格，运行时由 useRenderIcon/SmartIcon 离线优先 + 在线回退渲染
             icon: "ep:home-filled"
           }
         }

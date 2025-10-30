@@ -111,7 +111,7 @@ export const getSubscription = (id: string, config?: any) => {
  */
 export const getInvoice = (id: string, config?: any) => {
   return http.get<Invoice, any>(
-    `/api/billing/invoices/${id}`,
+    `/api/billing/invoices/${encodeURIComponent(id)}`,
     undefined,
     config
   );
@@ -130,7 +130,7 @@ export const getInvoice = (id: string, config?: any) => {
  */
 export const reconcileInvoice = (id: string, payload: any, config?: any) => {
   return http.post<any, any>(
-    `/api/billing/invoices/${id}/reconcile`,
+    `/api/billing/invoices/${encodeURIComponent(id)}/reconcile`,
     { data: payload },
     config
   );
@@ -149,7 +149,7 @@ export const reconcileInvoice = (id: string, payload: any, config?: any) => {
  */
 export const approveInvoice = (id: string, payload: any, config?: any) => {
   return http.post<any, any>(
-    `/api/billing/invoices/${id}/approve`,
+    `/api/billing/invoices/${encodeURIComponent(id)}/approve`,
     { data: payload },
     config
   );
@@ -168,7 +168,7 @@ export const approveInvoice = (id: string, payload: any, config?: any) => {
  */
 export const signInvoice = (id: string, payload: any, config?: any) => {
   return http.post<any, any>(
-    `/api/billing/invoices/${id}/sign`,
+    `/api/billing/invoices/${encodeURIComponent(id)}/sign`,
     { data: payload },
     config
   );
@@ -187,7 +187,7 @@ export const signInvoice = (id: string, payload: any, config?: any) => {
 export const downloadInvoicePdf = (id: string, config?: any) => {
   const axiosConfig = { responseType: "blob", ...(config || {}) };
   return http.get<Blob, any>(
-    `/api/billing/invoices/${id}/pdf`,
+    `/api/billing/invoices/${encodeURIComponent(id)}/pdf`,
     undefined,
     axiosConfig
   );
