@@ -98,5 +98,10 @@ pnpm test:icon:smoke
   - 开发服务器冷启动：CI 环境下已将 `webServer.timeout` 提升至 120s，若仍有偶发端口监听延迟，可进一步延长或在任务前显式健康检查。
   - 并发资源竞争：CI 已限制 `workers=1`，如本地复现需降低并发，可在本地执行时加 `--workers=1`。
 
+### E2E 文档与跨浏览器稳定策略
+
+- 子项目的完整 E2E 说明文档：`pure-admin-thin-max-ts/docs/e2e-playwright.md`
+- 涵盖内容：统一 dev server 端口（8848）、BASE_URL 覆盖策略、网络层断言与 APIRequestContext 直链校验、PDF 魔数验证、常见错误与排查、函数级注释约定。
+
 提示：Icon Audit 工作流现已上传审计日志（icon-audit-report）为 Artifact，可直接下载查看。
 如需更多细节或新增自定义报告，可提出需求，我将补充工作流与文档说明。

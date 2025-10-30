@@ -53,7 +53,7 @@
   - 启动开发服务器：`pnpm dev`（默认 `http://localhost:8848/`）或让 Playwright 自动启动。
   - 运行全量测试：`CI=true pnpm test:e2e`（三端均为 headless）。
   - 如需更换端口或复用已有服务，可通过 `BASE_URL` 覆盖（例如 `BASE_URL=http://localhost:8848`）。
-- 详见文档：`docs/e2e-playwright.md`。
+- 详见文档：[`docs/e2e-playwright.md`](./docs/e2e-playwright.md)。
 
 - 图标策略审计：
   - `pnpm audit:views:no-online` 视图层禁用在线图标的静态审计（`dev` 目录除外），违规将被阻断提交。
