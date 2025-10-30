@@ -174,15 +174,30 @@ test.describe("IconAudit smoke", () => {
         .toBe("false");
     });
 
-    // 3) Schedule：新增按钮与空态图标可见
-    await test.step("Schedule 新增按钮与空态图标可见", async () => {
+    // 3) Schedule：新增按钮与空态图标（稳健可见性断言）
+    // 函数级注释: 在 CI 预览环境下可能存在网络限制，Iconify 在线图标渲染会延迟或降级。
+    // 允许 Iconify 在线组件根节点（data-testid）或运行时注入的占位节点 .iconify[data-icon] 任一可见，减少对网络时序的依赖。
+    await test.step("Schedule 新增按钮与空态图标（稳健可见性断言）", async () => {
       const scheduleDemo = page.getByTestId("schedule-demo-card");
-      await expect(
-        scheduleDemo.locator('[data-testid="schedule-add-icon"]').first()
-      ).toBeVisible();
-      await expect(
-        scheduleDemo.locator('[data-testid="schedule-empty-icon"]').first()
-      ).toBeVisible();
+      await expect(scheduleDemo).toBeVisible();
+
+      // 新增按钮图标：允许组件根元素或 Iconify 运行时注入的占位节点满足可见性
+      const addIconCandidate = scheduleDemo
+        .locator(
+          '[data-testid="schedule-add-icon"], .iconify[data-icon="ri:add-large-line"]'
+        )
+        .first();
+      await expect(addIconCandidate).toBeVisible();
+
+      // 空态区域包含文案“暂无排班”，作为区域可见性的佐证
+      await expect(scheduleDemo.getByText("暂无排班")).toBeVisible();
+
+      const emptyIconCandidate = scheduleDemo
+        .locator(
+          '[data-testid="schedule-empty-icon"], .iconify[data-icon="ep:calendar"]'
+        )
+        .first();
+      await expect(emptyIconCandidate).toBeVisible();
     });
   });
 });
