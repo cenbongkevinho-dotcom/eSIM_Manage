@@ -181,10 +181,12 @@ test.describe("IconAudit smoke", () => {
       const scheduleDemo = page.getByTestId("schedule-demo-card");
       await expect(scheduleDemo).toBeVisible();
 
-      // 新增按钮图标：允许组件根元素或 Iconify 运行时注入的占位节点满足可见性
+      // 新增按钮图标：允许组件根元素、直接渲染的 svg/img、或 Iconify 运行时占位节点满足可见性
+      // 说明：在离线模式下（SmartIcon 离线优先），Iconify 可能直接渲染为 <svg>，无 .iconify 包裹与 data-icon 属性
+      // 因此此处对 svg/img 进行兼容匹配，提升 CI/预览环境的稳定性
       const addIconCandidate = scheduleDemo
         .locator(
-          '[data-testid="schedule-add-icon"], .iconify[data-icon="ri:add-large-line"]'
+          '[data-testid="schedule-add-icon"], svg, img, .iconify[data-icon="ri:add-large-line"]'
         )
         .first();
       await expect(addIconCandidate).toBeVisible();

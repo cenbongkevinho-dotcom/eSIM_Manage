@@ -83,7 +83,8 @@ const {
                 "
               >
                 <template #icon>
-                  <IconifyIconOnline
+                  <!-- 使用 SmartIcon（离线优先 + 在线回退）以提升云端/受限网络环境下的稳定性 -->
+                  <SmartIcon
                     icon="ri:add-large-line"
                     style="color: #8e9096"
                   />
@@ -119,7 +120,8 @@ const {
                   v-else
                   class="m-4 flex-c flex-col gap-2 text-center text-[rgba(0,0,0,0.45)] dark:text-[rgba(255,255,255,0.45)]"
                 >
-                  <IconifyIconOnline icon="ep:calendar" />
+                  <!-- 使用 SmartIcon（离线优先 + 在线回退）空态图标在无网络时也能渲染 -->
+                  <SmartIcon icon="ep:calendar" />
                   <ReText class="!text-inherit !text-[13px]">暂无排班</ReText>
                 </div>
               </el-scrollbar>
