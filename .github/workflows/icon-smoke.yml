@@ -50,12 +50,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
-        run: pnpm test:install
-
-      - name: Install Playwright Linux dependencies
-        run: npx playwright install-deps
-
+      # 预先恢复 Playwright 浏览器缓存，加速后续安装
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
@@ -63,6 +58,10 @@ jobs:
           key: ${{ runner.os }}-ms-playwright-${{ hashFiles('pure-admin-thin-max-ts/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-ms-playwright-
+
+      # 仅安装 Chromium 并包含依赖（package.json 的 test:install 已限定为 chromium）
+      - name: Install Playwright browsers (Chromium only, with deps)
+        run: pnpm test:install
 
       - name: Run icon smoke tests (Chromium)
         env:

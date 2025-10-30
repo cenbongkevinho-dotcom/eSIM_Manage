@@ -20,7 +20,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:prettier && pnpm lint:stylelint",
     "ci:i18n": "node scripts/check-i18n-keys.mjs",
     "audit:icon": "node ../scripts/audit-icon-usage.mjs --root ..",
-    "test:install": "playwright install --with-deps",
+    "test:install": "playwright install --with-deps chromium",
     "test:icon:smoke": "playwright test -c playwright.config.ts --project=chromium",
     "test:report": "playwright show-report",
     "prepare": "husky",
