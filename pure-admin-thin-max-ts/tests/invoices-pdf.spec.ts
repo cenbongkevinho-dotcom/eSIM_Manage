@@ -122,16 +122,12 @@ test.describe("Invoice PDF actions", () => {
     expect(req, "未捕获到 inline 预览的网络请求").toBeDefined();
     debugLog("[popup] request:", req.method(), req.url());
 
-    // 等待对应响应到达并断言基础状态码与头部（如果可用）
-    const resp = await req.response();
-    expect(resp, "未获取到 inline 预览响应").toBeDefined();
-    if (resp) {
-      expect(resp.status(), "inline 预览响应状态码异常").toBeLessThan(400);
-      const headers = await resp.headers();
-      // 某些驱动下可能不返回头部，这里做尽量宽松的断言；如返回则校验类型信息
-      if (headers && headers["content-type"]) {
-        expect(headers["content-type"]).toContain("application/pdf");
-      }
+    // 函数级注释：为避免跨浏览器驱动在内联 PDF 预览下对 Request.response() 的不一致行为，
+    // 这里在已确认 UI 触发了匹配的 GET 请求后，改用 APIRequestContext 直链 GET 来断言响应头与有效性。
+    const inlineResp = await getPdfResponse(page, invoiceId, true);
+    const headers = inlineResp.headers();
+    if (headers && headers["content-type"]) {
+      expect(headers["content-type"]).toContain("application/pdf");
     }
   });
 
