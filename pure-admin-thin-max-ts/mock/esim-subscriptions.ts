@@ -64,8 +64,7 @@ export default defineFakeRoute([
         }
       ];
     }
-  }
-  ,
+  },
   {
     url: "/api/subscriptions/:id",
     method: "get",

@@ -16,7 +16,7 @@ export default defineFakeRoute([
      * 来源参考：A very small PDF for testing（包含可见文本 Dummy PDF）
      * @returns PDF 二进制 Buffer
      */
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+
     rawResponse: (req, res) => {
       /**
        * 解析查询字符串中的模式参数（mode），用于控制 Content-Disposition。
@@ -24,10 +24,14 @@ export default defineFakeRoute([
        * @param urlPath 请求路径，可能包含查询字符串
        * @returns "inline" 或 "attachment"
        */
-      function resolveDispositionMode(urlPath: string): "inline" | "attachment" {
+      function resolveDispositionMode(
+        urlPath: string
+      ): "inline" | "attachment" {
         try {
           const u = new URL(urlPath, "http://localhost");
-          const mode = (u.searchParams.get("mode") || "attachment").toLowerCase();
+          const mode = (
+            u.searchParams.get("mode") || "attachment"
+          ).toLowerCase();
           return mode === "inline" ? "inline" : "attachment";
         } catch {
           return "attachment";

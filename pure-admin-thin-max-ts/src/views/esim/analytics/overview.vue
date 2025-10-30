@@ -817,7 +817,11 @@ function loadFiltersFromLocal() {
             <div class="filter-label">
               {{ t("views.analytics.overview.filters.groupBy") }}
             </div>
-            <el-radio-group v-model="groupBy" size="small" data-testid="filters-groupBy">
+            <el-radio-group
+              v-model="groupBy"
+              size="small"
+              data-testid="filters-groupBy"
+            >
               <el-radio-button label="day" data-testid="groupBy-day">{{
                 t("views.analytics.overview.filters.group.day")
               }}</el-radio-button>
@@ -834,7 +838,11 @@ function loadFiltersFromLocal() {
             <div class="filter-label">
               {{ t("views.analytics.overview.filters.cardsScope") }}
             </div>
-            <el-radio-group v-model="cardsScope" size="small" data-testid="filters-cardsScope">
+            <el-radio-group
+              v-model="cardsScope"
+              size="small"
+              data-testid="filters-cardsScope"
+            >
               <el-radio-button label="overall" data-testid="scope-overall">{{
                 t("views.analytics.overview.filters.scope.overall")
               }}</el-radio-button>
@@ -848,18 +856,30 @@ function loadFiltersFromLocal() {
             <el-button
               size="small"
               type="primary"
-              @click="onApplyFilters"
               data-testid="filters-apply"
+              @click="onApplyFilters"
             >
               {{ t("views.analytics.overview.filters.actions.apply") }}
             </el-button>
-            <el-button size="small" @click="onResetFilters" data-testid="filters-reset">
+            <el-button
+              size="small"
+              data-testid="filters-reset"
+              @click="onResetFilters"
+            >
               {{ t("views.analytics.overview.filters.actions.reset") }}
             </el-button>
-            <el-button size="small" @click="onExportMonthlyCsv" data-testid="export-monthly-csv">
+            <el-button
+              size="small"
+              data-testid="export-monthly-csv"
+              @click="onExportMonthlyCsv"
+            >
               {{ t("views.analytics.overview.buttons.exportMonthlyCsv") }}
             </el-button>
-            <el-button size="small" @click="onExportOperatorsCsv" data-testid="export-operators-csv">
+            <el-button
+              size="small"
+              data-testid="export-operators-csv"
+              @click="onExportOperatorsCsv"
+            >
               {{ t("views.analytics.overview.buttons.exportOperatorsCsv") }}
             </el-button>
           </div>
@@ -873,10 +893,14 @@ function loadFiltersFromLocal() {
         <div class="card-title">
           {{ t("views.analytics.overview.cards.activationCodes") }}
         </div>
-        <div class="card-value" data-testid="cards-activationCodes-total">{{ cActivationCodesTotal }}</div>
+        <div class="card-value" data-testid="cards-activationCodes-total">
+          {{ cActivationCodesTotal }}
+        </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.unused") }}:
-          <span data-testid="cards-activationCodes-unused">{{ cUnusedCodes }}</span>
+          <span data-testid="cards-activationCodes-unused">{{
+            cUnusedCodes
+          }}</span>
         </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.used") }}:
@@ -884,7 +908,9 @@ function loadFiltersFromLocal() {
         </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.expired") }}:
-          <span data-testid="cards-activationCodes-expired">{{ cExpiredCodes }}</span>
+          <span data-testid="cards-activationCodes-expired">{{
+            cExpiredCodes
+          }}</span>
         </div>
       </el-card>
 
@@ -892,18 +918,26 @@ function loadFiltersFromLocal() {
         <div class="card-title">
           {{ t("views.analytics.overview.cards.subscriptions") }}
         </div>
-        <div class="card-value" data-testid="cards-subscriptions-total">{{ cSubscriptionsTotal }}</div>
+        <div class="card-value" data-testid="cards-subscriptions-total">
+          {{ cSubscriptionsTotal }}
+        </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.active") }}:
-          <span data-testid="cards-subscriptions-active">{{ cActiveSubs }}</span>
+          <span data-testid="cards-subscriptions-active">{{
+            cActiveSubs
+          }}</span>
         </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.inactive") }}:
-          <span data-testid="cards-subscriptions-inactive">{{ cInactiveSubs }}</span>
+          <span data-testid="cards-subscriptions-inactive">{{
+            cInactiveSubs
+          }}</span>
         </div>
         <div class="card-sub">
           {{ t("views.analytics.overview.cards.cancelled") }}:
-          <span data-testid="cards-subscriptions-cancelled">{{ cCancelledSubs }}</span>
+          <span data-testid="cards-subscriptions-cancelled">{{
+            cCancelledSubs
+          }}</span>
         </div>
       </el-card>
 
@@ -911,12 +945,19 @@ function loadFiltersFromLocal() {
         <div class="card-title">
           {{ t("views.analytics.overview.cards.invoices") }}
         </div>
-        <div class="card-value" data-testid="cards-invoices-total">{{ cInvoicesTotal }}</div>
+        <div class="card-value" data-testid="cards-invoices-total">
+          {{ cInvoicesTotal }}
+        </div>
       </el-card>
     </div>
 
     <div class="mt-2">
-      <el-button type="primary" :loading="loading" @click="onRefresh" data-testid="refresh">
+      <el-button
+        type="primary"
+        :loading="loading"
+        data-testid="refresh"
+        @click="onRefresh"
+      >
         {{ t("views.analytics.overview.buttons.refresh") }}
       </el-button>
     </div>

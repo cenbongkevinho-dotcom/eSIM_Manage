@@ -40,8 +40,7 @@ export default defineFakeRoute([
         }
       ];
     }
-  }
-  ,
+  },
   {
     url: "/api/billing/invoices/:id",
     method: "get",
