@@ -224,8 +224,7 @@ export async function buildInvoicePdfUrl(
   }
 
   // 优先使用环境变量 BASE_URL（若用户在运行时设置了该变量）
-  const fallbackBase =
-    process.env.BASE_URL || "http://localhost:8848";
+  const fallbackBase = process.env.BASE_URL || "http://localhost:8848";
 
   const base = baseOrigin || fallbackBase;
   return new URL(path, base).href;
