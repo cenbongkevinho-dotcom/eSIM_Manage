@@ -55,18 +55,15 @@ function handleOpenPanel(payload?: unknown) {
 
   if (typeof payload === "object" && payload !== null) {
     const anyPayload = payload as Record<string, unknown>;
-    const candidates = [
-      anyPayload.open,
-      anyPayload.visible,
-      anyPayload.value
-    ];
+    const candidates = [anyPayload.open, anyPayload.visible, anyPayload.value];
     for (const c of candidates) {
       if (typeof c === "boolean") {
         nextOpen = c;
         break;
       }
     }
-    if (typeof anyPayload.channel === "string") payloadChannel = anyPayload.channel as string;
+    if (typeof anyPayload.channel === "string")
+      payloadChannel = anyPayload.channel as string;
   } else if (typeof payload === "boolean") {
     nextOpen = payload;
   } else if (typeof payload === "undefined") {
@@ -152,14 +149,16 @@ defineExpose({ open, close, toggle });
             zIndex: 41000
           }"
           :class="iconClass"
+          data-testid="panel-close-btn"
+          @click="show = false"
         >
-          <IconifyIconOnline
+          <!-- 关闭图标改为 SmartIcon（离线优先 + 在线回退），保持 data-testid 不变以保证测试稳健 -->
+          <SmartIcon
             class="dark:text-white"
             width="18px"
             height="18px"
             :icon="CloseIcon"
-            data-testid="panel-close-btn"
-            @click="show = false"
+            aria-hidden="false"
           />
         </span>
       </div>

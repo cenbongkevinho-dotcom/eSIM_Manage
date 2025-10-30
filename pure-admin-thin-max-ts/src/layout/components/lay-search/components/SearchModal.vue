@@ -326,10 +326,7 @@ onKeyStroke("ArrowDown", handleDown);
       @input="handleSearch"
     >
       <template #prefix>
-        <IconifyIconOnline
-          :icon="SearchIcon"
-          class="text-primary w-[24px] h-[24px]"
-        />
+        <SmartIcon :icon="SearchIcon" class="text-primary w-[24px] h-[24px]" />
       </template>
     </el-input>
     <div class="search-content">

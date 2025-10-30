@@ -1,21 +1,21 @@
 import type { iconType } from "./types";
 import { h, defineComponent, type Component } from "vue";
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "../index";
+import { isOfflineIconRegistered } from "./offlineIcon";
 
 /**
- * 通用图标渲染函数（在线冒号风格优先，兼容离线斜杠风格）
+ * 通用图标渲染函数（离线优先 + 在线回退，兼容 IF-/SVG/对象）
  * 说明：
  * - 支持 iconfont（IF- 前缀），可通过空格指定模式："IF-pure-iconfont-logo svg" / "IF-pure-iconfont-logo uni"
  * - 支持自定义 SVG 组件（函数或带 render 的对象），原样渲染
- * - 支持 Iconify 在线图标（冒号风格，如 "ep:delete"、"ri:fullscreen-fill"），无需预注册，直接从网络加载
- * - 支持 Iconify 离线图标（斜杠风格，如 "ep/delete"、"ri/fullscreen-fill"），依赖预注册（offlineIcon.ts）
+ * - 支持 Iconify 图标：
+ *   - 冒号风格（如 "ep:delete"、"ri:fullscreen-fill"）：优先尝试离线斜杠键名，若已注册则离线渲染；否则在线回退
+ *   - 斜杠风格（如 "ep/delete"、"ri/fullscreen-fill"）：直接走离线渲染（需已通过 addIcon 注册）
  * - 渲染规则：
  *   1) 以 "IF-" 开头 → 使用 FontIcon（iconfont）
  *   2) 传入函数/带 render 的对象 → 视为自定义 SVG 组件
  *   3) 传入对象 → 作为离线图标对象传给 IconifyIconOffline
- *   4) 传入字符串：
- *      - 包含冒号（":"）→ 使用 IconifyIconOnline 按在线模式加载（不做格式转换）
- *      - 其他情况 → 使用 IconifyIconOffline（保持斜杠风格或原样）
+ *   4) 传入字符串 → 智能选择离线/在线路径（离线优先）
  *
  * @param icon 图标源：字符串（IF- 前缀、Iconify 名称）、组件、对象
  * @param attrs 额外属性，如 size、color、class 等，会透传到具体图标组件
@@ -59,26 +59,41 @@ export function useRenderIcon(icon: any, attrs?: iconType): Component {
     });
   } else {
     /**
-     * Iconify 在线/离线渲染（按命名风格自动选择）：
-     * - 冒号风格（如 "ep:delete"、"ri:fullscreen-fill"）→ 在线加载 IconifyIconOnline（无需预注册、可加载所有图标）
-     * - 非冒号风格（如 "ep/delete"、"ri/fullscreen-fill"）→ 离线渲染 IconifyIconOffline（依赖离线注册）
+     * Iconify 智能渲染（离线优先 + 在线回退）：
+     * - 冒号风格（如 "ep:delete"、"ri:fullscreen-fill"）：
+     *   1) 转换为斜杠键名（provider/name）；
+     *   2) 若已离线注册则使用 IconifyIconOffline 渲染；
+     *   3) 否则回退到 IconifyIconOnline 在线渲染；
+     * - 非冒号风格（如 "ep/delete"、"ri/fullscreen-fill"）：直接离线渲染（需 addIcon 预注册）。
      */
     return defineComponent({
       name: "Icon",
       render() {
         if (!icon) return;
-        if (typeof icon === "string" && icon.includes(":")) {
-          // 在线模式：保持冒号命名原样传入
-          return h(IconifyIconOnline, {
+        if (typeof icon === "string") {
+          // 冒号风格：尝试离线优先，未命中则在线回退
+          if (icon.includes(":")) {
+            const i = icon.indexOf(":");
+            const offlineKey = icon.slice(0, i) + "/" + icon.slice(i + 1);
+            if (isOfflineIconRegistered(offlineKey)) {
+              return h(IconifyIconOffline, {
+                icon: offlineKey,
+                ...attrs
+              });
+            }
+            return h(IconifyIconOnline, {
+              icon: icon,
+              ...attrs
+            });
+          }
+          // 斜杠或其它字符串：按离线模式原样渲染（需 addIcon 预注册）
+          return h(IconifyIconOffline, {
             icon: icon,
             ...attrs
           });
         }
-        // 离线模式：斜杠或其它字符串，原样传入（需已通过 addIcon 注册）
-        return h(IconifyIconOffline, {
-          icon: icon,
-          ...attrs
-        });
+        // 兜底：非字符串，但走到此分支的情况极少，直接离线组件渲染
+        return h(IconifyIconOffline, { icon, ...attrs });
       }
     });
   }

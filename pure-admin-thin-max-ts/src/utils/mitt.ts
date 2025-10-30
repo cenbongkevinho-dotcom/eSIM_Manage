@@ -11,7 +11,9 @@ type Events = {
    * - true/false：直接表示显隐
    * - 对象：{ open|visible|value?: boolean; channel?: string }
    */
-  openPanel: boolean | { open?: boolean; visible?: boolean; value?: boolean; channel?: string };
+  openPanel:
+    | boolean
+    | { open?: boolean; visible?: boolean; value?: boolean; channel?: string };
   tagOnClick: string;
   logoChange: boolean;
   tagViewsChange: string;

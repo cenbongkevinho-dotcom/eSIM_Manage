@@ -2,8 +2,10 @@
   <div class="icon-audit">
     <h2>Icon 校验（在线冒号风格优先）</h2>
     <p class="desc">
-      本页集中展示 Navbar、Settings、Panel 与 Schedule 相关的在线图标（冒号风格）。
-      若均能正常显示，则说明在线图标渲染链路工作正常；离线斜杠风格仅用作 offlineIcon.ts 的兜底注册，不在业务代码中直接使用。
+      本页集中展示 Navbar、Settings、Panel 与 Schedule
+      相关的在线图标（冒号风格）。
+      若均能正常显示，则说明在线图标渲染链路工作正常；离线斜杠风格仅用作
+      offlineIcon.ts 的兜底注册，不在业务代码中直接使用。
     </p>
 
     <!-- 交互演示：便于直接点验图标与行为 -->
@@ -20,14 +22,22 @@
 
         <!-- Panel 面板（真实组件） -->
         <div class="demo-card" data-testid="panel-demo-card">
-          <div class="card-head">Panel 面板（点击按钮打开，右上角 ep:close 关闭）</div>
+          <div class="card-head">
+            Panel 面板（点击按钮打开，右上角 ep:close 关闭）
+          </div>
           <div class="card-body">
-            <el-button type="primary" data-testid="open-panel-btn" @click="openPanel">打开 Panel</el-button>
+            <el-button
+              type="primary"
+              data-testid="open-panel-btn"
+              @click="openPanel"
+              >打开 Panel</el-button
+            >
             <!-- 通过 channel="icon-audit" 隔离（同时支持编程式控制以避免全局事件干扰） -->
             <LayPanel ref="panelRef" channel="icon-audit">
               <div class="panel-slot">
                 <IconifyIconOnline icon="ep:close" class="mr-1" />
-                这里是 Panel 内部自测内容占位（可点击右上角关闭图标验证 ep:close 在线渲染）。
+                这里是 Panel 内部自测内容占位（可点击右上角关闭图标验证 ep:close
+                在线渲染）。
               </div>
             </LayPanel>
           </div>
@@ -39,7 +49,12 @@
           <div class="card-body flex-center gap-12">
             <div class="inline-flex items-center gap-2">
               <span>折叠状态：</span>
-              <el-switch v-model="arrowCollapsed" inline-prompt :active-text="'是'" :inactive-text="'否'" />
+              <el-switch
+                v-model="arrowCollapsed"
+                inline-prompt
+                :active-text="'是'"
+                :inactive-text="'否'"
+              />
             </div>
             <div class="inline-flex items-center gap-2">
               <span>箭头预览：</span>
@@ -64,11 +79,17 @@
           <div class="card-body">
             <el-button circle data-testid="schedule-add-btn">
               <template #icon>
-                <IconifyIconOnline icon="ri:add-large-line" data-testid="schedule-add-icon" />
+                <IconifyIconOnline
+                  icon="ri:add-large-line"
+                  data-testid="schedule-add-icon"
+                />
               </template>
             </el-button>
             <div class="empty-block" data-testid="schedule-empty-block">
-              <IconifyIconOnline icon="ep:calendar" data-testid="schedule-empty-icon" />
+              <IconifyIconOnline
+                icon="ep:calendar"
+                data-testid="schedule-empty-icon"
+              />
               <span class="empty-text">暂无排班</span>
             </div>
           </div>
@@ -76,18 +97,37 @@
 
         <!-- SmartIcon 离线能力演示（对照：在线 vs SmartIcon，不影响在线测试） -->
         <div class="demo-card" data-testid="smarticon-demo-card">
-          <div class="card-head">SmartIcon 离线能力演示（在线 vs SmartIcon 对照）</div>
+          <div class="card-head">
+            SmartIcon 离线能力演示（在线 vs SmartIcon 对照）
+          </div>
           <div class="card-body">
             <div class="compare-row">
               <span class="compare-label">在线：</span>
               <div class="icons">
                 <div class="icon-item">
-                  <IconifyIconOnline icon="ri:add-large-line" data-testid="smarticon-online-add" class="demo-icon" />
+                  <IconifyIconOnline
+                    icon="ri:add-large-line"
+                    data-testid="smarticon-online-add"
+                    class="demo-icon"
+                  />
                   <span class="label">ri:add-large-line</span>
                 </div>
                 <div class="icon-item">
-                  <IconifyIconOnline icon="ep:calendar" data-testid="smarticon-online-calendar" class="demo-icon" />
+                  <IconifyIconOnline
+                    icon="ep:calendar"
+                    data-testid="smarticon-online-calendar"
+                    class="demo-icon"
+                  />
                   <span class="label">ep:calendar</span>
+                </div>
+                <div class="icon-item">
+                  <!-- 对照用例：该图标未进行离线预注册，用于验证 SmartIcon 在线回退路径 -->
+                  <IconifyIconOnline
+                    icon="ri:bug-line"
+                    data-testid="smarticon-online-bug"
+                    class="demo-icon"
+                  />
+                  <span class="label">ri:bug-line</span>
                 </div>
               </div>
             </div>
@@ -96,13 +136,30 @@
               <div class="icons">
                 <div class="icon-item">
                   <!-- SmartIcon：离线优先 + 在线回退 -->
-                  <SmartIcon icon="ri:add-large-line" data-testid="smarticon-smart-add" class="demo-icon" />
+                  <SmartIcon
+                    icon="ri:add-large-line"
+                    data-testid="smarticon-smart-add"
+                    class="demo-icon"
+                  />
                   <span class="label">ri:add-large-line</span>
                 </div>
                 <div class="icon-item">
                   <!-- SmartIcon：离线优先 + 在线回退 -->
-                  <SmartIcon icon="ep:calendar" data-testid="smarticon-smart-calendar" class="demo-icon" />
+                  <SmartIcon
+                    icon="ep:calendar"
+                    data-testid="smarticon-smart-calendar"
+                    class="demo-icon"
+                  />
                   <span class="label">ep:calendar</span>
+                </div>
+                <div class="icon-item">
+                  <!-- SmartIcon 在线回退验证：由于未离线预注册 ri/bug-line，应回退为在线渲染 -->
+                  <SmartIcon
+                    icon="ri:bug-line"
+                    data-testid="smarticon-smart-bug"
+                    class="demo-icon"
+                  />
+                  <span class="label">ri:bug-line</span>
                 </div>
               </div>
             </div>
@@ -121,7 +178,6 @@
       </div>
     </section>
   </div>
-  
 </template>
 
 <script setup lang="ts">
@@ -202,12 +258,20 @@ function setupPage() {
     arrowCollapsed.value = !arrowCollapsed.value;
   }
 
-  return { groups: data, arrowCollapsed, arrowIcon, openPanel, toggleArrow, panelRef };
+  return {
+    groups: data,
+    arrowCollapsed,
+    arrowIcon,
+    openPanel,
+    toggleArrow,
+    panelRef
+  };
 }
 
 // 暴露给模板使用的响应式数据与方法
 // 注意：必须完整解构，否则模板中引用的变量将是 undefined，导致渲染异常
-const { groups, arrowCollapsed, arrowIcon, openPanel, toggleArrow, panelRef } = setupPage();
+const { groups, arrowCollapsed, arrowIcon, openPanel, toggleArrow, panelRef } =
+  setupPage();
 
 // 为避免布局设置面板干扰（尤其是 E2E 初始化阶段），页面挂载后主动将其关闭
 onMounted(() => {
@@ -220,34 +284,42 @@ onMounted(() => {
 .icon-audit {
   padding: 16px;
 }
+
 .desc {
-  color: var(--el-text-color-secondary);
   margin: 4px 0 16px;
+  color: var(--el-text-color-secondary);
 }
+
 .interactive {
   margin: 12px 0 24px;
 }
+
 .demo-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
 }
+
 .demo-card {
+  overflow: hidden;
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  overflow: hidden;
 }
+
 .demo-card .card-head {
   padding: 10px 12px;
   font-weight: 600;
   background: var(--el-fill-color-light);
 }
+
 .demo-card .card-body {
   padding: 12px;
 }
+
 .panel-slot {
   padding: 8px 12px;
 }
+
 .empty-block {
   display: inline-flex;
   flex-direction: column;
@@ -256,48 +328,60 @@ onMounted(() => {
   width: 120px;
   height: 100px;
   margin-left: 8px;
-  color: rgba(0, 0, 0, 0.45);
+  color: rgb(0 0 0 / 45%);
 }
+
 .empty-text {
   margin-top: 6px;
   font-size: 12px;
 }
+
 .flex-center {
   display: flex;
   align-items: center;
 }
+
 .gap-12 {
   gap: 12px;
 }
+
 .group {
   margin-bottom: 20px;
 }
+
 .icons {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
+
 .icon-item {
   display: inline-flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   padding: 8px 12px;
   border: 1px dashed var(--el-border-color);
   border-radius: 8px;
 }
+
 .demo-icon {
   font-size: 20px;
 }
+
 .label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 12px;
 }
+
 .compare-row {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
   margin-bottom: 8px;
 }
+
 .compare-label {
   width: 80px;
   color: var(--el-text-color-secondary);

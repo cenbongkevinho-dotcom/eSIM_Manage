@@ -1,7 +1,8 @@
 import Sortable from "sortablejs";
 import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 // 引入全局注册的在线 Iconify 组件用于 TSX 中显式引用
-import { IconifyIconOnline } from "@/components/ReIcon";
+// 使用 SmartIcon（离线优先）替换在线 Iconify 引用
+import { SmartIcon } from "@/components/ReIcon";
 import {
   type PropType,
   ref,
@@ -19,7 +20,7 @@ import {
   getKeyList
 } from "@pureadmin/utils";
 
-// 统一使用 Iconify 在线组件，采用冒号命名
+// 统一使用冒号风格命名，运行时 SmartIcon 离线优先 + 在线回退渲染
 const Fullscreen = "ri:fullscreen-fill";
 const ExitFullscreen = "ri:fullscreen-exit-fill";
 // 拖拽手柄使用 Remix 图标
@@ -288,11 +289,12 @@ export default defineComponent({
     };
 
     /**
-     * 列设置弹窗的触发图标（使用 Iconify 在线图标）
+     * 列设置弹窗的触发图标
+     * 说明：使用 SmartIcon（离线优先），同时保留 v-tippy 提示与样式
      */
     const reference = {
       reference: () => (
-        <IconifyIconOnline
+        <SmartIcon
           class={["w-[16px]", iconClass.value]}
           icon={Setting}
           v-tippy={rendTippyProps("列设置")}
@@ -326,7 +328,7 @@ export default defineComponent({
               ) : null}
               {props.tableRef?.size ? (
                 <>
-                  <IconifyIconOnline
+                  <SmartIcon
                     class={["w-[16px]", iconClass.value]}
                     icon={ExpandAll}
                     style={{
@@ -340,7 +342,7 @@ export default defineComponent({
                   <el-divider direction="vertical" />
                 </>
               ) : null}
-              <IconifyIconOnline
+              <SmartIcon
                 class={[
                   "w-[16px]",
                   iconClass.value,
@@ -356,7 +358,7 @@ export default defineComponent({
                 trigger="click"
                 v-tippy={rendTippyProps("密度")}
               >
-                <IconifyIconOnline
+                <SmartIcon
                   class={["w-[16px]", iconClass.value]}
                   icon={DensityMenu}
                 />
@@ -398,7 +400,7 @@ export default defineComponent({
                         {checkColumnList.map((item, index) => {
                           return (
                             <div class="flex items-center">
-                              <IconifyIconOnline
+                              <SmartIcon
                                 class={[
                                   "drag-btn w-[16px] mr-2",
                                   isFixedColumn(item)
@@ -435,7 +437,7 @@ export default defineComponent({
               </el-popover>
               <el-divider direction="vertical" />
 
-              <IconifyIconOnline
+              <SmartIcon
                 class={["w-[16px]", iconClass.value]}
                 icon={isFullscreen.value ? ExitFullscreen : Fullscreen}
                 v-tippy={isFullscreen.value ? "退出全屏" : "全屏"}

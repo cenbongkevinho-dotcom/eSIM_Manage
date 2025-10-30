@@ -1,0 +1,53 @@
+name: E2E Playwright
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        working-directory: ./pure-admin-thin-max-ts
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: ./pure-admin-thin-max-ts
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run Playwright tests (all browsers)
+        working-directory: ./pure-admin-thin-max-ts
+        env:
+          CI: true
+        run: pnpm exec playwright test -c playwright.config.ts --reporter=list
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: pure-admin-thin-max-ts/playwright-report
+
+      - name: Upload raw test results (screenshots, traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: pure-admin-thin-max-ts/test-results

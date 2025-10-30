@@ -116,6 +116,8 @@ const reconcileLoading = ref(false);
 const approveLoading = ref(false);
 const signLoading = ref(false);
 const downloadLoading = ref(false);
+// 预览按钮的加载状态
+const previewLoading = ref(false);
 
 // 操作面板各动作的表单模型
 const reconcileForm = ref({
@@ -375,6 +377,70 @@ async function doDownloadPdf() {
     downloadLoading.value = false;
   }
 }
+
+/**
+ * 构建支持内联预览的 PDF 直链（GET /api/billing/invoices/:id/pdf?mode=inline）。
+ * 说明：
+ * - 通过查询参数 mode=inline，后端/Mock 将返回 Content-Disposition: inline；
+ * - 返回相对路径，避免在开发与生产环境中的域名差异；
+ * - 使用 window.open 以新标签页打开，确保浏览器原生 PDF 查看器接管。
+ * @param id 发票 ID
+ * @returns 预览直链 URL
+ */
+function buildInlinePreviewUrl(id: string): string {
+  const encodedId = encodeURIComponent(id);
+  return `/api/billing/invoices/${encodedId}/pdf?mode=inline`;
+}
+
+/**
+ * 预览发票 PDF（新标签页打开内联预览）。
+ * 说明：
+ * - 先以 XHR 调用 downloadInvoicePdf 捕获请求/响应头中的 Authorization 与 X-Correlation-ID；
+ * - 同步记录响应的 Blob 元信息（size/type），便于在 DebugInfo 中展示；
+ * - 再使用 window.open 打开直链（mode=inline），让浏览器原生 PDF 查看器内联呈现；
+ * - 注意：由于 window.open 会再次发起 GET 请求，网络层面会产生一次额外请求，用于真实预览展示。
+ */
+async function doPreviewPdf() {
+  if (!invoiceId.value) {
+    ElMessage.warning(t("views.invoices.messages.fillInvoiceIdFirst"));
+    return;
+  }
+  clearOperationDebug();
+  previewLoading.value = true;
+  try {
+    // 先同步打开浏览器内联预览（新标签页）以保留用户激活状态，避免异步请求后 window.open 被浏览器拦截。
+    const previewUrl = buildInlinePreviewUrl(invoiceId.value);
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+
+    // 再以 XHR 捕获请求/响应头中的 Authorization 与 X-Correlation-ID，并记录 Blob 元信息（不触发下载）。
+    const blob = await downloadInvoicePdf(invoiceId.value, {
+      // 通过 config.params 注入查询参数，确保契约可验证
+      params: { mode: "inline" },
+      beforeRequestCallback: config => {
+        const headers = (config.headers || {}) as Record<string, string>;
+        opRequestCorrelationId.value =
+          headers["x-correlation-id"] || headers["X-Correlation-ID"] || "";
+        opRequestAuthorization.value =
+          headers["authorization"] || headers["Authorization"] || "";
+      },
+      beforeResponseCallback: response => {
+        const headers = response.headers as Record<string, string> | undefined;
+        if (headers) {
+          opCorrelationId.value =
+            headers["x-correlation-id"] || headers["X-Correlation-ID"] || "";
+        }
+      }
+    });
+    // 记录预览的基础信息（用于 DebugInfo 展示），但不触发下载
+    opResponseData.value = { size: blob.size, type: blob.type, mode: "inline" };
+    ElMessage.success(t("views.invoices.messages.pdfPreviewOpened"));
+  } catch (e: any) {
+    opErrorMsg.value = e?.message || String(e);
+    ElMessage.error(opErrorMsg.value);
+  } finally {
+    previewLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -484,6 +550,12 @@ async function doDownloadPdf() {
           <div class="card-header">{{ t("views.invoices.cards.pdf") }}</div>
         </template>
         <div class="flex flex-col gap-2">
+          <el-button
+            type="primary"
+            :loading="previewLoading"
+            @click="doPreviewPdf"
+            >{{ t("common.buttons.previewPdf") }}</el-button
+          >
           <el-button
             type="success"
             :loading="downloadLoading"

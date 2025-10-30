@@ -14,7 +14,8 @@ function handleSearch() {
       class="search-container w-[40px] h-[48px] flex-c cursor-pointer navbar-bg-hover"
       @click="handleSearch"
     >
-      <IconifyIconOnline icon="ri:search-line" />
+      <!-- 使用 SmartIcon 提升离线稳定性，保留交互与样式 -->
+      <SmartIcon icon="ri:search-line" />
     </div>
     <SearchModal v-model:value="show" />
   </div>

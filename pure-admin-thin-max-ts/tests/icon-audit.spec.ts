@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { ensureDevAuth, closeExtraneousPanels } from "./helpers/e2e-utils";
 
-
 /**
  * 打开 Icon 校验页并等待核心元素渲染
  * - 使用 hash 路由直达（开发环境 VITE_ROUTER_HISTORY = "hash"）
@@ -75,12 +74,12 @@ function getIconAuditPanel(page) {
     .first();
 }
 
-
 /**
  * 验证在线图标是否正确渲染
  * - 使用 Iconify 渲染时会带有 data-icon 属性，便于稳定选择
  */
-async function assertIconVisible(page, iconName: string) {
+// 函数级注释：该辅助断言用于在需要时验证在线图标的可见性；当前用例未直接使用，重命名为以下划线开头以符合未使用变量的规则。
+async function _assertIconVisible(page, iconName: string) {
   // 优先：直接使用 data-icon 精确匹配
   const byDataAttr = page.locator(`[data-icon="${iconName}"]`).first();
   if ((await byDataAttr.count()) > 0) {
@@ -200,6 +199,33 @@ test.describe("IconAudit smoke", () => {
         )
         .first();
       await expect(emptyIconCandidate).toBeVisible();
+    });
+
+    // 4) SmartIcon 渲染来源断言（离线优先 + 在线回退）
+    // 函数级注释: 通过 data-render-source 属性区分离线/在线渲染来源，确保 SmartIcon 策略与预期一致。
+    await test.step("SmartIcon 渲染来源（离线优先 + 在线回退）", async () => {
+      const smartCard = page.getByTestId("smarticon-demo-card");
+      await expect(smartCard).toBeVisible();
+
+      // 离线预注册的图标：应由 IconifyIconOffline 渲染（data-render-source=offline）
+      await expect(page.getByTestId("smarticon-smart-add")).toHaveAttribute(
+        "data-render-source",
+        "offline"
+      );
+      await expect(
+        page.getByTestId("smarticon-smart-calendar")
+      ).toHaveAttribute("data-render-source", "offline");
+
+      // 未离线预注册的图标（ri:bug-line）：SmartIcon 应回退为在线渲染（data-render-source=online）
+      await expect(page.getByTestId("smarticon-smart-bug")).toHaveAttribute(
+        "data-render-source",
+        "online"
+      );
+      // 在线对照：IconifyIconOnline 组件应标记为 online
+      await expect(page.getByTestId("smarticon-online-bug")).toHaveAttribute(
+        "data-render-source",
+        "online"
+      );
     });
   });
 });

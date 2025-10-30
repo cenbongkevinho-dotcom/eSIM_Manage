@@ -12,6 +12,8 @@ import {
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
     wrapperEnv(loadEnv(mode, root));
+  // 函数级注释：允许通过环境变量禁用本地 /api 代理，以便在 E2E 测试中使用 vite-plugin-fake-server 提供的 mock 接口
+  const enableProxy = process.env.ENABLE_PROXY !== "false";
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -24,13 +26,15 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       port: VITE_PORT,
       host: "0.0.0.0",
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
-      proxy: {
-        "/api": {
-          target: "http://localhost:4010",
-          changeOrigin: true,
-          rewrite: path => path.replace(/^\/api/, "")
-        }
-      },
+      proxy: enableProxy
+        ? {
+            "/api": {
+              target: "http://localhost:4010",
+              changeOrigin: true,
+              rewrite: path => path.replace(/^\/api/, "")
+            }
+          }
+        : undefined,
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
       warmup: {
         clientFiles: ["./index.html", "./src/{views,components}/*"]

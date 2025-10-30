@@ -12,7 +12,7 @@ import { useAppStoreHook } from "@/store/modules/app";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useGlobal, isAllEmpty } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@/store/modules/permission";
-// 使用在线 Iconify 冒号命名，配合 IconifyIconOnline 组件显示全屏图标
+// 统一使用 Iconify 冒号命名（如 ri:fullscreen-fill），渲染由 SmartIcon/useRenderIcon 实现“离线优先 + 在线回退”
 const ExitFullscreen = "ri:fullscreen-exit-fill";
 const Fullscreen = "ri:fullscreen-fill";
 

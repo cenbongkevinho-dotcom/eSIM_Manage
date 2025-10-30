@@ -74,7 +74,7 @@ function onShow(btn: floatBtnsType, index: number) {
         :delay="20 * index"
         @click="onShow(btn, index)"
       >
-        <IconifyIconOnline :icon="btn.icon" />
+        <SmartIcon :icon="btn.icon" />
       </button>
     </div>
   </div>

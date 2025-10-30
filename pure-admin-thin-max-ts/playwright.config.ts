@@ -31,9 +31,10 @@ export default defineConfig({
   use: {
     // 函数级注释：根据环境选择基础 URL
     // - 本地开发：默认 8848（由 .env.development 配置）
-    // - CI 云端：推荐使用 vite preview 默认端口 4173，更稳定、资源占用更低
+    // - CI 云端：改用 dev server（端口 8848）以规避部分插件在 preview 构建阶段的 Rollup 解析问题
     baseURL:
-      process.env.BASE_URL || (process.env.CI ? "http://localhost:4173" : "http://localhost:8848"),
+      process.env.BASE_URL ||
+      "http://localhost:8848",
     headless: true,
     /*
      * 失败调试辅助：
@@ -44,6 +45,11 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure"
+    ,
+    // 函数级注释：启用下载捕获
+    // - 某些浏览器（Firefox/WebKit）在未启用时无法触发 download 事件，导致无法断言下载行为
+    // - 将 acceptDownloads 设置为 true，允许 Playwright 捕获并管理下载
+    acceptDownloads: true
   },
   /* 浏览器项目：默认启用 Chromium，并追加 Firefox / WebKit 以便本地跨浏览器验证 */
   projects: [
@@ -69,14 +75,15 @@ export default defineConfig({
     }
   ],
   /* Web 服务器：
-   * - 本地：启动 Vite 开发服务器（pnpm dev），端口 8848，可复用已存在的服务
-   * - CI：使用构建后的 vite preview 静态预览，端口 4173，更适合云端稳定运行
+   * - 本地 / CI：统一使用 Vite 开发服务器（pnpm dev），端口 8848
+   *   说明：由于少量第三方插件在 preview 构建阶段存在 Rollup 解析本机二进制的异常（如 fsevents.node），
+   *        CI 下也改用 dev server，避免构建期异常；同时通过 ENABLE_PROXY=false 禁用代理，让 mock 接口正常工作。
    */
   webServer: {
-    // 函数级注释：在 CI 环境下切换为预览模式，避免 dev server 的热更新与文件监听在云端造成不稳定
-    command: process.env.CI ? "pnpm preview:build" : "pnpm dev",
-    url:
-      process.env.BASE_URL || (process.env.CI ? "http://localhost:4173" : "http://localhost:8848"),
+    // 函数级注释：为确保 /api 由 vite-plugin-fake-server 接管而非代理到 4010，显式禁用代理：ENABLE_PROXY=false
+    command: "ENABLE_PROXY=false pnpm dev",
+    url: process.env.BASE_URL || "http://localhost:8848",
+    // 函数级注释：允许复用已存在的服务，提升本地与 CI 复测效率
     reuseExistingServer: true,
     /**
      * CI 环境下提升 dev server 启动等待时间，避免云端冷启动导致的端口监听延迟：

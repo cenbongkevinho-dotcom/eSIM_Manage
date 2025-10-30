@@ -38,6 +38,7 @@ watch(
 
 <template>
   <span class="overall-style-icon navbar-bg-hover" @click="onToggle">
-    <IconifyIconOnline :icon="styleIcon" />
+    <!-- 使用 SmartIcon（离线优先 + 在线回退），避免受限网络下图标加载失败 -->
+    <SmartIcon :icon="styleIcon" />
   </span>
 </template>

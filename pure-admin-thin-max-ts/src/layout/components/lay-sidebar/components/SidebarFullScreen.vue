@@ -29,6 +29,7 @@ watch(
     data-testid="navbar-fullscreen-toggle"
     @click="toggle"
   >
-    <IconifyIconOnline :icon="screenIcon" />
+    <!-- 全屏/退出全屏图标使用 SmartIcon（离线优先 + 在线回退）以提升云端稳定性 -->
+    <SmartIcon :icon="screenIcon" />
   </span>
 </template>

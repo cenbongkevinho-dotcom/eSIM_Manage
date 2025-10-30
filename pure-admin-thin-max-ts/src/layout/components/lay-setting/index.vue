@@ -382,7 +382,11 @@ watch(
 </script>
 
 <template>
-  <LayPanel ref="settingPanelRef" channel="layout-setting" data-testid="layout-setting-panel">
+  <LayPanel
+    ref="settingPanelRef"
+    channel="layout-setting"
+    data-testid="layout-setting-panel"
+  >
     <div class="p-5">
       <p :class="pClass">整体风格</p>
       <Segmented
@@ -416,7 +420,8 @@ watch(
             :size="17"
             :color="getThemeColor(item.themeColor)"
           >
-            <IconifyIconOnline :icon="Check" />
+            <!-- 主题色选中使用 SmartIcon，保证离线优先渲染与一致的 UI 表现 -->
+            <SmartIcon :icon="Check" />
           </el-icon>
         </li>
       </ul>
@@ -505,7 +510,8 @@ watch(
             :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
             style="color: var(--el-color-primary)"
           >
-            <IconifyIconOnline
+            <!-- 页宽伸缩指示箭头替换为 SmartIcon，以提升在受限网络下的图标稳定性 -->
+            <SmartIcon
               :icon="settings.stretch ? RightArrow : LeftArrow"
               width="20"
               height="20"
@@ -514,7 +520,7 @@ watch(
               class="grow border-0 border-b border-dashed"
               style="border-color: var(--el-color-primary)"
             />
-            <IconifyIconOnline
+            <SmartIcon
               :icon="settings.stretch ? LeftArrow : RightArrow"
               width="20"
               height="20"

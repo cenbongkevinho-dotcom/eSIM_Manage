@@ -151,7 +151,7 @@ watch(searchValue, val => {
       >
         <template #suffix>
           <el-icon class="el-input__icon">
-            <IconifyIconOnline
+            <SmartIcon
               v-show="searchValue.length === 0"
               icon="ri:search-line"
             />

@@ -8,7 +8,7 @@ import {
 } from "./index";
 import { ref, computed } from "vue";
 import { isFunction } from "@pureadmin/utils";
-// 改为传入字符串图标名称，统一使用 Iconify 在线组件，采用冒号命名
+// 传入字符串图标名称（冒号风格），运行时由 SmartIcon 离线优先 + 在线回退渲染
 const Fullscreen = "ri:fullscreen-fill";
 const ExitFullscreen = "ri:fullscreen-exit-fill";
 
@@ -150,7 +150,7 @@ function handleClose(
             }
           "
         >
-          <IconifyIconOnline
+          <SmartIcon
             class="pure-dialog-svg"
             :icon="
               options?.fullscreen

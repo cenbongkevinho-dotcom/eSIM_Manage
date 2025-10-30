@@ -97,7 +97,9 @@ icons.forEach(([name, icon]) => {
  * - OFFLINE_ICON_KEYS：以斜杠风格（如 "ep/close"、"ri/search-line"）注册的键名集合；
  * - isOfflineIconRegistered：判断某个斜杠风格键名是否已在离线运行时注册。
  */
-export const OFFLINE_ICON_KEYS = new Set<string>(icons.map(([name]) => name as string));
+export const OFFLINE_ICON_KEYS = new Set<string>(
+  icons.map(([name]) => name as string)
+);
 
 /**
  * 判断指定斜杠风格图标键名是否已完成离线注册

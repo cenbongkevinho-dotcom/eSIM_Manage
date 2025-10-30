@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { optionsItem } from "../types";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-// 统一使用 Iconify 在线组件，采用冒号命名
+// 统一使用冒号风格命名，运行时由 SmartIcon/useRenderIcon 离线优先 + 在线回退渲染
 const StarIcon = "ep:star";
 const CloseIcon = "ep:close";
 
@@ -39,13 +39,13 @@ function handleDelete(item) {
   <span class="history-item-title">
     {{ item.meta?.title }}
   </span>
-  <IconifyIconOnline
+  <SmartIcon
     v-show="item.type === 'history'"
     :icon="StarIcon"
     class="w-[18px] h-[18px] mr-2 hover:text-[#d7d5d4]"
     @click.stop="handleCollect(item)"
   />
-  <IconifyIconOnline
+  <SmartIcon
     :icon="CloseIcon"
     class="w-[18px] h-[18px] hover:text-[#d7d5d4] cursor-pointer"
     @click.stop="handleDelete(item)"

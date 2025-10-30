@@ -11,7 +11,7 @@ import { useI18n } from "vue-i18n";
 import { setAppLocale } from "@/plugins/i18n";
 import type { SupportedLocale } from "@/plugins/i18n";
 
-// 统一使用 Iconify 在线组件，采用冒号命名
+// 统一使用冒号风格命名，运行时由 SmartIcon/useRenderIcon 离线优先 + 在线回退渲染
 const LogoutCircleRLine = "ri:logout-circle-r-line";
 const Setting = "ri:settings-3-line";
 const Translate = "ri:translate-2";
@@ -74,8 +74,8 @@ function onLangCommand(command: string) {
           class="el-dropdown-link navbar-bg-hover select-none"
           :title="t('common.buttons.language')"
         >
-          <!-- 统一使用 Iconify 在线图标，避免依赖外部 iconfont 库 -->
-          <IconifyIconOnline :icon="Translate" style="margin: 5px" />
+          <!-- 使用 SmartIcon（离线优先 + 在线回退），在受限网络下提升稳定性 -->
+          <SmartIcon :icon="Translate" style="margin: 5px" />
           <p class="dark:text-white">{{ t("common.buttons.language") }}</p>
         </span>
         <template #dropdown>
@@ -106,10 +106,8 @@ function onLangCommand(command: string) {
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <el-dropdown-item @click="logout">
-              <IconifyIconOnline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
+              <!-- 使用 SmartIcon，图标键为冒号风格，无需额外预注册；若离线未命中将自动在线回退 -->
+              <SmartIcon :icon="LogoutCircleRLine" style="margin: 5px" />
               {{ t("common.buttons.logout") }}
             </el-dropdown-item>
           </el-dropdown-menu>
@@ -120,7 +118,8 @@ function onLangCommand(command: string) {
         :title="t('common.tooltips.openSettings')"
         @click="onPanel"
       >
-        <IconifyIconOnline :icon="Setting" />
+        <!-- 设置图标替换为 SmartIcon，保证离线优先渲染且不改变交互与样式 -->
+        <SmartIcon :icon="Setting" />
       </span>
     </div>
   </div>

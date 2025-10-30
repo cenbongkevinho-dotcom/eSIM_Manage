@@ -32,7 +32,7 @@ export default defineComponent({
         {
           tip: "保姆级文档",
           link: "https://pure-admin.cn/",
-          // 统一为在线冒号风格，使用 Iconify 在线组件
+          // 统一为冒号风格，SmartIcon/useRenderIcon 运行时离线优先 + 在线回退
           icon: "ri:book-open-line",
           show: false
         },

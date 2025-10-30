@@ -14,6 +14,17 @@ export default {
   },
   children: [
     {
+      path: "/esim/analytics/overview",
+      name: "AnalyticsOverview",
+      component: () => import("@/views/esim/analytics/overview.vue"),
+      meta: {
+        icon: getIconName("analytics"),
+        // 数据概览页标题使用 i18n 键
+        title: "routes.esim.analytics",
+        showLink: true
+      }
+    },
+    {
       path: "/esim/operators/activation-codes",
       name: "ActivationCodes",
       component: () => import("@/views/esim/activation-codes/index.vue"),

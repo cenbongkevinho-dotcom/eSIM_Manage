@@ -85,7 +85,7 @@ function loadLocaleObject(filePath) {
   // 去掉末尾分號
   if (literal.endsWith(";")) literal = literal.slice(0, -1);
   // 以函數返回字面量的方式評估
-  // eslint-disable-next-line no-new-func
+
   const obj = new Function(`return (${literal})`)();
   return obj;
 }
@@ -142,7 +142,10 @@ function main() {
   }
 
   // 輸出結果並設置退出碼
-  const totalMissing = Object.values(missing).reduce((sum, arr) => sum + arr.length, 0);
+  const totalMissing = Object.values(missing).reduce(
+    (sum, arr) => sum + arr.length,
+    0
+  );
   if (totalMissing === 0) {
     console.log("[i18n] 所有語言包鍵完整，未檢測到缺失。");
     process.exit(0);
@@ -159,4 +162,3 @@ function main() {
 }
 
 main();
-

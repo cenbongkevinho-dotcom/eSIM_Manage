@@ -3,17 +3,17 @@ import type { iconType } from "@/components/ReIcon/src/types";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 /**
- * 安全渲染图标封装（在线优先、双风格兼容）：
+ * 安全渲染图标封装（离线优先 + 在线回退，双风格兼容）：
  * 说明：
- * - 推荐统一使用在线“冒号风格”（如 ep:delete、ri:search-line），可直接通过 Iconify 在线组件加载；
- * - 同时兼容离线“斜杠风格”（如 ep/delete、ri/search-line），保留原样传递以支持离线注册渲染；
- * - 对空值或非法值提供在线兜底图标（ri:information-line）。
+ * - 推荐统一使用“冒号风格”字符串（如 ep:delete、ri:search-line），useRenderIcon 会优先尝试离线键名渲染，未命中时在线回退；
+ * - 兼容“斜杠风格”字符串（如 ep/delete、ri/search-line），原样透传以支持离线注册渲染；
+ * - 对空值或非法值提供兜底图标（ri:information-line，冒号风格）。
  *
  * 函数行为：
- * - 若传入为有效字符串，不做格式转换，原样交给 useRenderIcon；
- * - 若为空或非法，兜底为 ri:information-line（在线冒号风格）。
+ * - 若传入为有效字符串，不做格式转换，原样交给 useRenderIcon（离线优先）；
+ * - 若为空或非法，兜底为 ri:information-line。
  *
- * @param icon 图标名字符串（推荐在线冒号风格），也兼容斜杠风格；或自定义 SVG 组件
+ * @param icon 图标名字符串（推荐冒号风格），也兼容斜杠风格；或自定义 SVG 组件
  * @param attrs 图标属性（大小、颜色、class 等）
  * @returns 可渲染的图标组件（Component）
  */

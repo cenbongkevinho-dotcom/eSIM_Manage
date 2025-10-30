@@ -1,4 +1,4 @@
-import { h, defineComponent, type Component } from "vue";
+import { h, defineComponent, type Component, isVNode } from "vue";
 import type { iconType } from "./types";
 import IconifyIconOffline from "./iconifyIconOffline";
 import IconifyIconOnline from "./iconifyIconOnline";
@@ -8,7 +8,7 @@ import { isOfflineIconRegistered } from "./offlineIcon";
 /**
  * 将冒号风格转换为斜杠风格（仅当包含冒号时），用于定位离线注册的键名
  * @param name 图标名字符串（如 "ep:close"、"ri:search-line"）
- * @returns 斜杠风格键名（如 "ep/close"、"ri/search-line"）或原样字符串
+ * @returns 斜杠风格键名（provider/name 形式），或在不含冒号时返回原串
  */
 function toSlash(name: string): string {
   const i = name.indexOf(":");
@@ -72,8 +72,14 @@ export default defineComponent({
   render() {
     const attrs = this.$attrs as iconType | Record<string, unknown> | undefined;
     const Comp = useRenderIconSmart(this.icon, attrs as iconType);
-    // 直接渲染由 useRenderIconSmart 返回的组件实例
-    return typeof Comp === "function" ? h(Comp, attrs as any) : Comp;
+    /**
+     * 渲染说明：
+     * - useRenderIconSmart 可能返回两类结果：
+     *   1) VNode（已通过 h(...) 构造好）→ 直接返回即可；
+     *   2) 组件对象（由 defineComponent 创建）→ 需再次用 h(...) 包装后返回。
+     * - 之前仅判断 typeof Comp === "function"，当返回的是组件对象时直接 return 导致被当作纯文本输出为 [object Object]。
+     * - 这里使用 isVNode 精确判断，如果不是 VNode 就用 h 包装为可渲染的 VNode。
+     */
+    return isVNode(Comp) ? Comp : h(Comp as any, attrs as any);
   }
 });
-

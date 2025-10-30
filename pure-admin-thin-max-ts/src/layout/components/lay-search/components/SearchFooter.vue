@@ -2,7 +2,7 @@
 import { useNav } from "@/layout/hooks/useNav";
 import MdiKeyboardEsc from "@/assets/svg/keyboard_esc.svg?component";
 import EnterOutlined from "@/assets/svg/enter_outlined.svg?component";
-// 统一使用 Iconify 在线组件，采用冒号命名
+// 统一使用 SmartIcon（离线优先），采用冒号命名
 const ArrowUpLine = "ri:arrow-up-line";
 const ArrowDownLine = "ri:arrow-down-line";
 
@@ -20,8 +20,9 @@ const { device } = useNav();
       确认
     </span>
     <span class="search-footer-item">
-      <IconifyIconOnline :icon="ArrowUpLine" class="icon" />
-      <IconifyIconOnline :icon="ArrowDownLine" class="icon" />
+      <!-- 使用 SmartIcon 提升离线稳定性，保留样式与结构 -->
+      <SmartIcon :icon="ArrowUpLine" class="icon" />
+      <SmartIcon :icon="ArrowDownLine" class="icon" />
       切换
     </span>
     <span class="search-footer-item">

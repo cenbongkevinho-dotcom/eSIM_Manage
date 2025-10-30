@@ -12,7 +12,7 @@ import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 import LaySidebarOverallStyle from "../lay-sidebar/components/SidebarOverallStyle.vue";
 
-// 顶部导航图标（统一为冒号命名在线模式）
+// 顶部导航图标（统一为冒号命名；使用 SmartIcon 离线优先）
 const LogoutCircleRLine = "ri:logout-circle-r-line";
 const Setting = "ri:settings-3-line";
 
@@ -97,10 +97,8 @@ onMounted(() => {
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <el-dropdown-item @click="logout">
-              <IconifyIconOnline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
+              <!-- 替换为 SmartIcon，提升离线稳定性 -->
+              <SmartIcon :icon="LogoutCircleRLine" style="margin: 5px" />
               {{ t("common.buttons.logout") }}
             </el-dropdown-item>
           </el-dropdown-menu>
@@ -111,7 +109,8 @@ onMounted(() => {
         :title="t('common.tooltips.openSettings')"
         @click="onPanel"
       >
-        <IconifyIconOnline :icon="Setting" />
+        <!-- 替换为 SmartIcon，保持交互与样式不变 -->
+        <SmartIcon :icon="Setting" />
       </span>
     </div>
   </div>

@@ -169,5 +169,23 @@ export default defineConfig([
         }
       ]
     }
+  },
+  // 视图层禁止直接使用在线 Icon 组件（dev 目录除外）
+  // 原理：借助 vue-eslint-parser 的模板 AST，使用 no-restricted-syntax 匹配 VElement 节点名
+  {
+    files: ["src/views/**/*.vue"],
+    ignores: ["src/views/dev/**"],
+    rules: {
+      // 在模板 AST 中匹配组件节点：VElement[name.name='IconifyIconOnline']
+      // 触发时给出明确的修复建议，统一走 SmartIcon/useRenderIcon 的“离线优先 + 在线回退”策略
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "VElement[name.name='IconifyIconOnline']",
+          message:
+            "禁止在 views 中直接使用 IconifyIconOnline（dev 目录除外），请改为 SmartIcon/useRenderIcon 以遵循‘离线优先 + 在线回退’策略。"
+        }
+      ]
+    }
   }
 ]);

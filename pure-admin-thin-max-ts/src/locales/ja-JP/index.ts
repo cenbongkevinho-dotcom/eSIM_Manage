@@ -18,7 +18,8 @@ export default {
       subscriptions: "サブスクリプション",
       subscriptionDetail: "サブスクリプション詳細",
       invoices: "請求書",
-      invoiceDetail: "請求書詳細"
+      invoiceDetail: "請求書詳細",
+      analytics: "アナリティクス概要"
     }
   },
   common: {
@@ -34,6 +35,7 @@ export default {
       submitApproval: "承認送信",
       sign: "署名",
       downloadPdf: "PDFダウンロード",
+      previewPdf: "PDFプレビュー",
       language: "言語",
       logout: "ログアウト",
       closeSettings: "設定を閉じる",
@@ -52,7 +54,8 @@ export default {
     },
     columns: {
       createTime: "作成日時",
-      operation: "操作"
+      operation: "操作",
+      number: "件数"
     },
     dropdown: {
       language: {
@@ -191,6 +194,7 @@ export default {
         color: "タグカラー",
         sort: "並び順",
         status: "ステータス",
+        codeStatus: "アクティベーションコードのステータス",
         remark: "備考",
         placeholders: {
           label: "辞書ラベルを入力してください",
@@ -280,6 +284,7 @@ export default {
             id: "パッケージID",
             name: "パッケージ名",
             status: "ステータス",
+            codeStatus: "アクティベーションコードのステータス",
             remark: "備考",
             operation: "操作"
           },
@@ -346,7 +351,65 @@ export default {
         reconcileSuccess: "照合に成功しました",
         approveSubmitted: "承認を送信しました",
         signCompleted: "署名が完了しました",
-        pdfDownloadStarted: "PDFダウンロードを開始しました"
+        pdfDownloadStarted: "PDFダウンロードを開始しました",
+        pdfPreviewOpened: "PDFプレビューを新しいタブで開きました"
+      }
+    },
+    analytics: {
+      overview: {
+        title:
+          "分析概要（既存APIの集計：アクティベーションコード／サブスクリプション／請求書）",
+        cards: {
+          activationCodes: "アクティベーションコード",
+          subscriptions: "サブスクリプション",
+          invoices: "請求書",
+          unused: "未使用",
+          used: "使用済み",
+          expired: "期限切れ",
+          active: "有効",
+          inactive: "無効",
+          cancelled: "キャンセル済み"
+        },
+        chart: {
+          monthlyNewSubscriptions:
+            "月別新規サブスクリプション（createdAt で集計）",
+          operatorsTop: "サブスクリプション数の上位オペレーター（Top 5）",
+          noData: "データなし"
+        },
+        buttons: {
+          refresh: "再読み込み",
+          exportMonthlyCsv: "月別新規サブスクリプション CSV をエクスポート",
+          exportOperatorsCsv: "オペレーター Top5 CSV をエクスポート"
+        },
+        filters: {
+          operator: "オペレーター",
+          status: "ステータス",
+          codeStatus: "アクティベーションコードのステータス",
+          timeRange: "期間",
+          groupBy: "グルーピング",
+          allOperators: "全オペレーター",
+          allStatus: "全ステータス",
+          cardsScope: "カードの集計範囲",
+          scope: {
+            overall: "全体",
+            filtered: "フィルター後"
+          },
+          quick: {
+            last7Days: "過去7日",
+            last30Days: "過去30日",
+            last90Days: "過去90日",
+            custom: "カスタム"
+          },
+          group: {
+            day: "日別",
+            week: "週別",
+            month: "月別"
+          },
+          actions: {
+            apply: "適用",
+            reset: "リセット"
+          }
+        }
       }
     }
   }

@@ -53,7 +53,7 @@ const { t } = useI18n();
 
 <template>
   <div class="left-collapse">
-    <IconifyIconOnline
+    <SmartIcon
       v-tippy="{
         content: isActive
           ? t('common.tooltips.clickToFold')
