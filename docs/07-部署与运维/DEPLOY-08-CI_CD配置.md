@@ -946,3 +946,13 @@ node scripts/run_newman.js
 node scripts/generate_demo_summary.js
 node scripts/check_demo_headk_gate.js
 ```
+
+Step Summary 参数来源与校验回显：
+
+- 说明：工作流的 Step Summary 会读取 `reports/newman-summary.json` 中 `reporting.meta`，以便在审阅时直观看到门禁参数来源与校验情况。
+  - 参数来源：若存在环境变量覆盖，会显示为“env 覆盖（threshold, headK, gateOn）”；否则显示“配置文件”。
+  - 参数校验：当出现非法或越界值（例如 `POSTMAN_HEADK_K<=0`、`POSTMAN_HEADK_THRESHOLD>100`），会打印警告并进行合理化（如截断阈值为 1 ～ 100）。
+  - 实际生效值：Step Summary 中展示的阈值与 K 值均为“覆盖后的最终值”，与门禁结果一致。
+  - 位置：
+    - “失败断言聚类”段落末尾追加“参数来源：env 覆盖（…）或配置文件”。
+    - “聚类集中度检查（门禁）”段落追加“参数来源”与逐条“参数校验”提示。

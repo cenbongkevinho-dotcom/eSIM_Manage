@@ -425,6 +425,16 @@ node scripts/generate_demo_summary.js
 node scripts/check_demo_headk_gate.js
 ```
 
+Step Summary 参数来源与校验回显：
+
+- 说明：Step Summary 读取 `reporting.meta` 并回显“参数来源”与“参数校验”。
+  - 参数来源：若存在环境变量覆盖，会显示“env 覆盖（threshold, headK, gateOn）”；否则显示“配置文件”。
+  - 参数校验：当出现非法或越界值（如 `POSTMAN_HEADK_K<=0`、`POSTMAN_HEADK_THRESHOLD>100`），会打印警告并进行合理化（如将阈值截断至 1～100）。
+  - 生效值：展示的阈值与 K 值为最终生效值，与门禁判断一致，便于复核。
+  - 展示位置：
+    - “失败断言聚类”段落末尾显示“参数来源”。
+    - “聚类集中度检查（门禁）”段落显示“参数来源”与逐条“参数校验”提示。
+
 - 退出码与 Step Summary：
   - 断言失败 -> 退出码 1；
   - 性能预算超标（开启 failOnBudgetBreach）-> 退出码 2；
