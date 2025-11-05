@@ -876,3 +876,73 @@ jobs:
 - 失败聚类展示：Step Summary 的“失败断言聚类”段落会读取 `reporting.failureClusters.topN` 控制展示条数；示例消息条数由 `examplesPerCluster` 控制。配置文件位于 `scripts/newman-config.json`。
   - 同时读取 `reporting.failureClusters.headK` 计算并展示“头部 K 类累计占比”（默认按 K=3 统计），配合覆盖率（coveragePercent）与每类占比（share）一起用于快速评估高频失败集中度。
   - 同时展示聚类覆盖率（coveragePercent）与每类占比（share），便于评审时快速聚焦主要问题来源。
+
+环境变量覆盖与 workflow_dispatch 输入（HeadK 门禁）：
+
+- 目的：在不同分支/场景下无需改动仓库配置文件即可临时调整“失败聚类集中度门禁”的参数。
+- 环境变量覆盖（优先级高于 `scripts/newman-config.json`）：`scripts/run_newman.js` 在 `loadReportingConfig()` 入口调用 `applyFailureClusterEnvOverrides()`，支持以下环境变量（未设置的变量不覆盖原配置）：
+  - `POSTMAN_HEADK_K`：头部 K 值（整数），对应 `reporting.failureClusters.headK`。
+  - `POSTMAN_HEADK_THRESHOLD`：门禁阈值（百分比，整数或小数），对应 `reporting.failureClusters.headKThresholdPercent`。
+  - `POSTMAN_HEADK_GATE_ON`：门禁开关（布尔，`true`/`false`），对应 `reporting.failureClusters.failOnHeadKThresholdBreach`。
+- workflow_dispatch 输入：`api-collection-tests.yml` 已新增三个输入并在运行步骤中注入为上述环境变量，实现 Actions 运行时动态控制。
+  - `headk_k` -> `POSTMAN_HEADK_K`
+  - `headk_threshold` -> `POSTMAN_HEADK_THRESHOLD`
+  - `headk_gate_on` -> `POSTMAN_HEADK_GATE_ON`
+- YAML 片段示例（节选）：
+
+```
+on:
+  workflow_dispatch:
+    inputs:
+      headk_threshold:
+        description: "HeadK 门禁阈值（百分比）"
+        required: false
+        default: "70"
+      headk_k:
+        description: "用于累计占比的 K 值"
+        required: false
+        default: "3"
+      headk_gate_on:
+        description: "是否开启 HeadK 门禁（true/false）"
+        required: false
+        default: "true"
+
+jobs:
+  postman_collection_tests:
+    steps:
+      - name: Run Postman collection via script
+        env:
+          POSTMAN_HEADK_THRESHOLD: ${{ github.event.inputs.headk_threshold }}
+          POSTMAN_HEADK_K: ${{ github.event.inputs.headk_k }}
+          POSTMAN_HEADK_GATE_ON: ${{ github.event.inputs.headk_gate_on }}
+        run: |
+          node scripts/run_newman.js
+```
+
+- 使用方式：
+  - GitHub Actions 页面 -> 选择该工作流 -> Run workflow -> 设置 `headk_threshold=80`、`headk_k=3`、`headk_gate_on=true` 即可按需调整门禁。
+  - 也可通过 GitHub CLI 触发（示例）：
+
+```
+gh workflow run api-collection-tests.yml \
+  -f headk_threshold=80 \
+  -f headk_k=3 \
+  -f headk_gate_on=true
+```
+
+- 行为与退出码约定（与前文一致）：
+  - 存在断言失败：退出码 1；
+  - 仅性能预算超标（开启 failOnBudgetBreach）：退出码 2；
+  - 无断言失败且“头部 K 类累计占比”达到阈值（开启 failOnHeadKThresholdBreach）：退出码 3。
+- 本地快速验证（Mac）：
+
+```
+export POSTMAN_HEADK_K=3
+export POSTMAN_HEADK_THRESHOLD=80
+export POSTMAN_HEADK_GATE_ON=true
+node scripts/run_newman.js
+
+# 如果仅需查看 demo 摘要中的门禁回显，可运行：
+node scripts/generate_demo_summary.js
+node scripts/check_demo_headk_gate.js
+```

@@ -402,6 +402,34 @@ jobs:
   - `failureClusters.failOnHeadKThresholdBreach`：开启门禁（默认 false）。开启后当“头部 K 类累计占比”≥阈值且无断言失败时，以退出码 3 结束。
 - 适用场景：断言失败高度集中（如同一断言在多个接口/同一文件夹中密集失败），可加速定位主因并作为质量红线。
 
+2.4 环境变量覆盖与 workflow_dispatch 输入（HeadK 门禁）
+- 为便于在不同分支/场景下灵活调整门禁参数，`scripts/run_newman.js` 支持通过环境变量覆盖配置（优先级高于 `scripts/newman-config.json`）：
+  - `POSTMAN_HEADK_K`：头部 K 值（整数），覆盖 `reporting.failureClusters.headK`。
+  - `POSTMAN_HEADK_THRESHOLD`：门禁阈值（百分比，整数或小数），覆盖 `reporting.failureClusters.headKThresholdPercent`。
+  - `POSTMAN_HEADK_GATE_ON`：门禁开关（布尔，`true`/`false`），覆盖 `reporting.failureClusters.failOnHeadKThresholdBreach`。
+- 在 CI 中可通过 `workflow_dispatch` 输入动态设置上述参数，工作流会将输入映射为环境变量注入到运行步骤：
+  - `headk_k` -> `POSTMAN_HEADK_K`
+  - `headk_threshold` -> `POSTMAN_HEADK_THRESHOLD`
+  - `headk_gate_on` -> `POSTMAN_HEADK_GATE_ON`
+- 本地快速验证（Mac）：
+
+```
+# 临时调整门禁参数并运行集合脚本
+export POSTMAN_HEADK_K=3
+export POSTMAN_HEADK_THRESHOLD=80
+export POSTMAN_HEADK_GATE_ON=true
+node scripts/run_newman.js
+
+# 仅查看 demo 摘要中的门禁回显（适合快速校验展示）：
+node scripts/generate_demo_summary.js
+node scripts/check_demo_headk_gate.js
+```
+
+- 退出码与 Step Summary：
+  - 断言失败 -> 退出码 1；
+  - 性能预算超标（开启 failOnBudgetBreach）-> 退出码 2；
+  - 聚类集中度门禁不通过（开启 failOnHeadKThresholdBreach 且无断言失败）-> 退出码 3。
+
 3) 与部署文档联动
 - 详见 `docs/07-部署与运维/DEPLOY-08-CI_CD配置.md` 的“12.8 报告查看与汇总指引”，两侧内容互相引用，确保在测试与部署语境下均可查阅。
  - 另见 “12.9 摘要 JSON 字段说明与扩展实践”，用于理解与演进 newman 摘要数据结构。
