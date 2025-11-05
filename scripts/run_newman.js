@@ -381,11 +381,73 @@ function writeNewmanSummary(summary, { outputPath, junitOutput = null, htmlOutpu
   }
 
   /**
+   * 函数级注释：applyFailureClusterEnvOverrides
+   * - 读取环境变量以覆盖失败聚类集中度相关配置（优先级高于配置文件）：
+   *   - POSTMAN_HEADK_K：整数，覆盖 failureClusters.headK（K 值，需 >0）
+   *   - POSTMAN_HEADK_THRESHOLD：阈值百分比，覆盖 failureClusters.headKThresholdPercent（建议范围 1～100，越界将进行截断并记录警告）
+   *   - POSTMAN_HEADK_GATE_ON：'1'/'true' 开启，'0'/'false' 关闭，覆盖 failureClusters.failOnHeadKThresholdBreach
+   * - 返回：{ cfg, meta }，其中 meta 用于在 Step Summary 中回显“参数来源”与校验提示。
+   * @param {Object} cfg 报告配置对象（包含 failureClusters）
+   * @returns {{ cfg: Object, meta: { source: 'env'|'file', overridesApplied: { headK?: boolean, threshold?: boolean, gateOn?: boolean }, warnings: string[] } }}
+   */
+  function applyFailureClusterEnvOverrides(cfg) {
+    const meta = { source: 'file', overridesApplied: {}, warnings: [] };
+    try {
+      if (!cfg || typeof cfg !== 'object') return { cfg: (cfg || {}), meta };
+      const fc = cfg.failureClusters || (cfg.failureClusters = {});
+      const prev = { headK: fc.headK, threshold: fc.headKThresholdPercent, gateOn: fc.failOnHeadKThresholdBreach };
+      const envKRaw = process.env.POSTMAN_HEADK_K;
+      const envThrRaw = process.env.POSTMAN_HEADK_THRESHOLD;
+      const envGateRaw = process.env.POSTMAN_HEADK_GATE_ON;
+      // 覆盖 headK（需为 >0 的数值）
+      if (envKRaw != null && String(envKRaw).trim() !== '') {
+        const kVal = Number(envKRaw);
+        if (!Number.isNaN(kVal) && kVal > 0) {
+          fc.headK = kVal;
+          meta.overridesApplied.headK = (prev.headK !== kVal);
+        } else {
+          meta.warnings.push(`POSTMAN_HEADK_K 非法（${envKRaw}），忽略覆盖`);
+        }
+      }
+      // 覆盖阈值（建议范围 1～100；越界截断）
+      if (envThrRaw != null && String(envThrRaw).trim() !== '') {
+        const thrValRaw = Number(envThrRaw);
+        if (!Number.isNaN(thrValRaw)) {
+          let thrVal = thrValRaw;
+          if (thrValRaw <= 0) { meta.warnings.push(`POSTMAN_HEADK_THRESHOLD 过低（${envThrRaw}），已截断为 1`); thrVal = 1; }
+          if (thrValRaw > 100) { meta.warnings.push(`POSTMAN_HEADK_THRESHOLD 过高（${envThrRaw}），已截断为 100`); thrVal = 100; }
+          fc.headKThresholdPercent = thrVal;
+          meta.overridesApplied.threshold = (prev.threshold !== thrVal);
+        } else {
+          meta.warnings.push(`POSTMAN_HEADK_THRESHOLD 非法（${envThrRaw}），忽略覆盖`);
+        }
+      }
+      // 覆盖门禁开关（true/false）
+      if (envGateRaw != null && String(envGateRaw).trim() !== '') {
+        const s = String(envGateRaw).toLowerCase();
+        const enabled = (s === '1' || s === 'true');
+        const disabled = (s === '0' || s === 'false');
+        if (enabled || disabled) {
+          fc.failOnHeadKThresholdBreach = enabled;
+          meta.overridesApplied.gateOn = (prev.gateOn !== enabled);
+        } else {
+          meta.warnings.push(`POSTMAN_HEADK_GATE_ON 非法（${envGateRaw}），忽略覆盖`);
+        }
+      }
+      if (Object.values(meta.overridesApplied).some(Boolean)) meta.source = 'env';
+      return { cfg, meta };
+    } catch (e) {
+      console.warn('[newman] 应用环境变量覆盖失败聚类配置失败：', e && e.message ? e.message : e);
+      return { cfg, meta };
+    }
+  }
+
+  /**
    * 函数级注释：loadReportingConfig
    * - 读取摘要/报告相关配置（scripts/newman-config.json）。
    * - 若文件不存在或解析失败，返回默认配置：
    *   { failureClusters: { topN: 10, examplesPerCluster: 3 } }
-   * - 返回结构：{ configPath, config }
+   * - 返回结构：{ configPath, config, meta }
    */
   function loadReportingConfig() {
     const cfgPath = path.resolve(process.cwd(), 'scripts', 'newman-config.json');
@@ -417,12 +479,15 @@ function writeNewmanSummary(summary, { outputPath, junitOutput = null, htmlOutpu
       if (fs.existsSync(cfgPath)) {
         const raw = fs.readFileSync(cfgPath, 'utf8');
         const cfg = JSON.parse(raw);
-        return { configPath: cfgPath, config: { ...defaults, ...cfg } };
+        const merged = { ...defaults, ...cfg };
+        const { cfg: overridden, meta } = applyFailureClusterEnvOverrides(merged);
+        return { configPath: cfgPath, config: overridden, meta };
       }
     } catch (e) {
       console.warn('[newman] 读取报告配置失败:', e.message);
     }
-    return { configPath: null, config: defaults };
+    const { cfg: overridden, meta } = applyFailureClusterEnvOverrides(defaults);
+    return { configPath: null, config: overridden, meta };
   }
 
   /**
@@ -673,8 +738,8 @@ function writeNewmanSummary(summary, { outputPath, junitOutput = null, htmlOutpu
       config: budgetConfig,
     },
     reporting: (() => {
-      const { configPath: reportingConfigPath, config: reportingConfig } = loadReportingConfig();
-      return { configPath: reportingConfigPath, config: reportingConfig };
+      const { configPath: reportingConfigPath, config: reportingConfig, meta: reportingMeta } = loadReportingConfig();
+      return { configPath: reportingConfigPath, config: reportingConfig, meta: reportingMeta };
     })(),
     budgetBreaches,
     // 失败聚类元信息（覆盖率等）

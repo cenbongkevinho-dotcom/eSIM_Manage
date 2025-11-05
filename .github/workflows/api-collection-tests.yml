@@ -2,6 +2,19 @@ name: API Collection Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      headk_threshold:
+        description: "HeadK 阈值百分比（1-100）"
+        required: false
+        default: "70"
+      headk_k:
+        description: "HeadK K 值（>=1）"
+        required: false
+        default: "3"
+      headk_gate_on:
+        description: "是否开启 HeadK 门禁（true/false）"
+        required: false
+        default: "true"
   push:
     branches: [ main, master ]
   pull_request:
@@ -38,6 +51,9 @@ jobs:
           POSTMAN_BASE_URL: http://localhost:8080
           POSTMAN_ENABLE_HTML_REPORT: '1'
           POSTMAN_HTML_REPORT_FILE: newman-report.html
+          POSTMAN_HEADK_THRESHOLD: ${{ github.event.inputs.headk_threshold }}
+          POSTMAN_HEADK_K: ${{ github.event.inputs.headk_k }}
+          POSTMAN_HEADK_GATE_ON: ${{ github.event.inputs.headk_gate_on }}
         run: |
           node scripts/run_newman.js
 
@@ -79,12 +95,13 @@ jobs:
             echo "#### 失败详情（前 10 条）" >> $GITHUB_STEP_SUMMARY
             node -e "const s=require('./reports/newman-summary.json'); const fails=(s.failures||[]).slice(0,10); for(const f of fails){ const name=f.name||'Error'; const msg=(f.message||'').replace(/\\n/g,' '); const item=(f.source&&f.source.item)||'unknown'; const id=(f.source&&f.source.id)||'n/a'; const p=(f.source&&f.source.path)||'n/a'; console.log(`- ${item} [${p}] (id=${id}): ${name} - ${msg}`); }" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "#### 失败断言聚类（按文件夹+断言名）" >> $GITHUB_STEP_SUMMARY
-            node -e "const s=require('./reports/newman-summary.json'); const cfg=s.reporting?.config?.failureClusters||{}; const topN=Number(cfg.topN||10)||10; const headN=Number(cfg.headK||3)||3; const thr=Number(cfg.headKThresholdPercent||70)||70; const enabled=!!cfg.failOnHeadKThresholdBreach; const meta=s.failureClustersMeta||{coveragePercent:0,totalFailures:0,clusteredFailuresCount:0}; const clusters=(s.failureClusters||[]).slice(0,topN); if(clusters.length===0){ console.log('- 无失败聚类'); } else { const headShareSum=clusters.slice(0,headN).reduce((sum,c)=>sum + (typeof c.share==='number'?c.share:0),0); const headShareSumRounded=Math.round(headShareSum*10)/10; console.log(`- 聚类覆盖率：${meta.coveragePercent}% (${meta.clusteredFailuresCount}/${meta.totalFailures})`); console.log(`- 头部${Math.min(headN,clusters.length)}类累计占比：${headShareSumRounded}%`); console.log(`- 门禁阈值：${thr}%；门禁开关：${enabled?'开启':'关闭'}`); // ASCII 柱状可视化
+          echo "#### 失败断言聚类（按文件夹+断言名）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const cfg=s.reporting?.config?.failureClusters||{}; const topN=Number(cfg.topN||10)||10; const headN=Number(cfg.headK||3)||3; const thr=Number(cfg.headKThresholdPercent||70)||70; const enabled=!!cfg.failOnHeadKThresholdBreach; const meta=s.failureClustersMeta||{coveragePercent:0,totalFailures:0,clusteredFailuresCount:0}; const clusters=(s.failureClusters||[]).slice(0,topN); if(clusters.length===0){ console.log('- 无失败聚类'); } else { const headShareSum=clusters.slice(0,headN).reduce((sum,c)=>sum + (typeof c.share==='number'?c.share:0),0); const headShareSumRounded=Math.round(headShareSum*10)/10; console.log(`- 聚类覆盖率：${meta.coveragePercent}% (${meta.clusteredFailuresCount}/${meta.totalFailures})`); console.log(`- 头部${Math.min(headN,clusters.length)}类累计占比：${headShareSumRounded}%`); console.log(`- 门禁阈值：${thr}%；门禁开关：${enabled?'开启':'关闭'}`); const rmeta=s.reporting?.meta||{}; const source=rmeta.source||'file'; const applied=rmeta.overridesApplied||{}; const keys=Object.keys(applied).filter(k=>applied[k]); if(keys.length>0){ console.log(`- 参数来源：env 覆盖（${keys.join(', ')})`);} else { console.log('- 参数来源：配置文件'); } // ASCII 柱状可视化
               const bar=(pct)=>{ const blocks=Math.max(0,Math.round((pct/100)*20)); return '█'.repeat(blocks).padEnd(20,' '); }; for(const c of clusters){ const ex=(c.examples||[]).map(x=>x.replace(/\\n/g,' ')).join(' | '); const shareNum=(typeof c.share==='number')?c.share:0; const share=(typeof c.share==='number')?`${c.share}%`:''; console.log(`- [${c.folder}] ${c.assertion}: ${c.count} 次（占比 ${share}）`); console.log(`  ${bar(shareNum)} | 示例：${ex}`); } }" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "#### 聚类集中度检查（门禁）" >> $GITHUB_STEP_SUMMARY
             node -e "const s=require('./reports/newman-summary.json'); const cfg=s.reporting?.config?.failureClusters||{}; const thr=Number(cfg.headKThresholdPercent||70)||70; const k=Number(cfg.headK||3)||3; const enabled=!!cfg.failOnHeadKThresholdBreach; const clusters=Array.isArray(s.failureClusters)?s.failureClusters:[]; if(!clusters.length){ console.log('- 无失败聚类：跳过集中度门禁'); } else { const headShareSum=clusters.slice(0,Math.min(k,clusters.length)).reduce((sum,c)=>sum + (typeof c.share==='number'?c.share:0),0); const rounded=Math.round(headShareSum*10)/10; const result=(enabled && rounded>=thr)?'不通过':'通过'; console.log(`- 阈值：${thr}%；K=${Math.min(k,clusters.length)}；当前头部累计占比：${rounded}%；门禁：${enabled?'开启':'关闭'}；结果：${result}`); }" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const rmeta=s.reporting?.meta||{}; const source=rmeta.source||'file'; const applied=rmeta.overridesApplied||{}; const keys=Object.keys(applied).filter(k=>applied[k]); const warnings=Array.isArray(rmeta.warnings)?rmeta.warnings:[]; if(keys.length>0){ console.log(`- 参数来源：env 覆盖（${keys.join(', ')})`);} else { console.log('- 参数来源：配置文件'); } for(const w of warnings){ console.log(`- 参数校验：${w}`); }" >> $GITHUB_STEP_SUMMARY
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "#### 状态码分布" >> $GITHUB_STEP_SUMMARY
