@@ -1,0 +1,21 @@
+{
+  "failureClusters": {
+    "topN": 10,
+    "headK": 3,
+    "headKThresholdPercent": 70,
+    "failOnHeadKThresholdBreach": true,
+    "examplesPerCluster": 3,
+    "normalizeMessages": true,
+    "normalization": {
+      "stripUUID": true,
+      "stripHex": true,
+      "stripNumbersLong": true,
+      "stripISODateTime": true,
+      "stripEmail": false,
+      "stripIPv4": false,
+      "stripIPv6": false,
+      "stripPhone": false,
+      "stripURLQueryValues": false
+    }
+  }
+}

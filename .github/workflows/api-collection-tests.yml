@@ -1,0 +1,151 @@
+name: API Collection Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  postman_newman:
+    name: Postman (newman)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install newman
+        run: |
+          npm install -g newman
+
+      - name: Install newman HTML reporter (htmlextra)
+        run: |
+          npm install -g newman-reporter-htmlextra
+
+      - name: Start mock server
+        run: |
+          node docs/07-部署与运维/ci/mock_server.js &
+          sleep 2
+
+      - name: Run Postman collection via script
+        env:
+          POSTMAN_BASE_URL: http://localhost:8080
+          POSTMAN_ENABLE_HTML_REPORT: '1'
+          POSTMAN_HTML_REPORT_FILE: newman-report.html
+        run: |
+          node scripts/run_newman.js
+
+      - name: Upload summary JSON
+        uses: actions/upload-artifact@v3
+        with:
+          name: newman-summary
+          path: reports/newman-summary.json
+
+      - name: Upload JUnit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: newman-junit-report
+          path: reports/newman-results.xml
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: newman-html-report
+          path: reports/newman-report.html
+
+      - name: Generate Step Summary from JSON
+        run: |
+          echo "### Postman 集合测试结果概览" >> $GITHUB_STEP_SUMMARY
+          if [ -f "reports/newman-summary.json" ]; then
+            FAIL_COUNT=$(node -e "const s=require('./reports/newman-summary.json'); console.log(s.stats?.failureCount || 0)")
+            COL_NAME=$(node -e "const s=require('./reports/newman-summary.json'); console.log(s.collection || 'collection')")
+            REQ_TOTAL=$(node -e "const s=require('./reports/newman-summary.json'); console.log(s.stats?.requestsTotal ?? 'n/a')")
+            ASSERT_TOTAL=$(node -e "const s=require('./reports/newman-summary.json'); console.log(s.stats?.assertionsTotal ?? 'n/a')")
+            ASSERT_FAILED=$(node -e "const s=require('./reports/newman-summary.json'); console.log(s.stats?.assertionsFailed ?? FAIL_COUNT)")
+            echo "- 集合: ${COL_NAME}" >> $GITHUB_STEP_SUMMARY
+            echo "- 失败数量: ${FAIL_COUNT}" >> $GITHUB_STEP_SUMMARY
+            echo "- 请求总数: ${REQ_TOTAL}" >> $GITHUB_STEP_SUMMARY
+            echo "- 断言: ${ASSERT_FAILED}/${ASSERT_TOTAL} (失败/总数)" >> $GITHUB_STEP_SUMMARY
+            echo "- JUnit 报告 Artifact: newman-junit-report" >> $GITHUB_STEP_SUMMARY
+            echo "- HTML 报告 Artifact: newman-html-report" >> $GITHUB_STEP_SUMMARY
+          if [ "$FAIL_COUNT" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 失败详情（前 10 条）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const fails=(s.failures||[]).slice(0,10); for(const f of fails){ const name=f.name||'Error'; const msg=(f.message||'').replace(/\\n/g,' '); const item=(f.source&&f.source.item)||'unknown'; const id=(f.source&&f.source.id)||'n/a'; const p=(f.source&&f.source.path)||'n/a'; console.log(`- ${item} [${p}] (id=${id}): ${name} - ${msg}`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 失败断言聚类（按文件夹+断言名）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const cfg=s.reporting?.config?.failureClusters||{}; const topN=Number(cfg.topN||10)||10; const headN=Number(cfg.headK||3)||3; const thr=Number(cfg.headKThresholdPercent||70)||70; const enabled=!!cfg.failOnHeadKThresholdBreach; const meta=s.failureClustersMeta||{coveragePercent:0,totalFailures:0,clusteredFailuresCount:0}; const clusters=(s.failureClusters||[]).slice(0,topN); if(clusters.length===0){ console.log('- 无失败聚类'); } else { const headShareSum=clusters.slice(0,headN).reduce((sum,c)=>sum + (typeof c.share==='number'?c.share:0),0); const headShareSumRounded=Math.round(headShareSum*10)/10; console.log(`- 聚类覆盖率：${meta.coveragePercent}% (${meta.clusteredFailuresCount}/${meta.totalFailures})`); console.log(`- 头部${Math.min(headN,clusters.length)}类累计占比：${headShareSumRounded}%`); console.log(`- 门禁阈值：${thr}%；门禁开关：${enabled?'开启':'关闭'}`); // ASCII 柱状可视化
+              const bar=(pct)=>{ const blocks=Math.max(0,Math.round((pct/100)*20)); return '█'.repeat(blocks).padEnd(20,' '); }; for(const c of clusters){ const ex=(c.examples||[]).map(x=>x.replace(/\\n/g,' ')).join(' | '); const shareNum=(typeof c.share==='number')?c.share:0; const share=(typeof c.share==='number')?`${c.share}%`:''; console.log(`- [${c.folder}] ${c.assertion}: ${c.count} 次（占比 ${share}）`); console.log(`  ${bar(shareNum)} | 示例：${ex}`); } }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 聚类集中度检查（门禁）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const cfg=s.reporting?.config?.failureClusters||{}; const thr=Number(cfg.headKThresholdPercent||70)||70; const k=Number(cfg.headK||3)||3; const enabled=!!cfg.failOnHeadKThresholdBreach; const clusters=Array.isArray(s.failureClusters)?s.failureClusters:[]; if(!clusters.length){ console.log('- 无失败聚类：跳过集中度门禁'); } else { const headShareSum=clusters.slice(0,Math.min(k,clusters.length)).reduce((sum,c)=>sum + (typeof c.share==='number'?c.share:0),0); const rounded=Math.round(headShareSum*10)/10; const result=(enabled && rounded>=thr)?'不通过':'通过'; console.log(`- 阈值：${thr}%；K=${Math.min(k,clusters.length)}；当前头部累计占比：${rounded}%；门禁：${enabled?'开启':'关闭'}；结果：${result}`); }" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 状态码分布" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const dist=s.distributions?.statusCodes||{}; const keys=Object.keys(dist).sort((a,b)=>Number(a)-Number(b)); for(const k of keys){ console.log(`- ${k}: ${dist[k]}`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 响应时间分位数" >> $GITHUB_STEP_SUMMARY
+            node -e "const p=require('./reports/newman-summary.json').responseTimePercentiles||{}; console.log(`- p50: ${p.p50??'n/a'} ms`); console.log(`- p90: ${p.p90??'n/a'} ms`); console.log(`- p95: ${p.p95??'n/a'} ms`); console.log(`- p99: ${p.p99??'n/a'} ms`);" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 最慢请求（Top 5）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const tops=s.topSlowRequests||[]; for(const t of tops){ console.log(`- ${t.name||'unknown'} (${t.code??'n/a'}): ${t.responseTime??'n/a'} ms`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 按文件夹聚合统计（失败优先，最多 10 条）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const agg=s.folderAggregates||{}; const keys=Object.keys(agg); keys.sort((a,b)=>{ const fb=(agg[b]?.assertionsFailed||0) - (agg[a]?.assertionsFailed||0); if (fb!==0) return fb; return (agg[b]?.requests||0) - (agg[a]?.requests||0); }); for(const k of keys.slice(0,10)){ const a=agg[k]; const sc=a.statusCodes||{}; const dist=Object.keys(sc).sort((x,y)=>Number(x)-Number(y)).map(c=>`${c}:${sc[c]}`).join(', '); console.log(`- ${k}: 请求 ${a.requests||0}, 断言 ${a.assertionsFailed||0}/${a.assertionsTotal||0}, 响应时间(avg/max) ${a.responseTime?.avg??'n/a'}/${a.responseTime?.max??'n/a'} ms, 状态码 [${dist}]`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 按方法聚合统计（失败优先，最多 10 条）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const agg=s.methodAggregates||{}; const keys=Object.keys(agg); keys.sort((a,b)=>{ const fb=(agg[b]?.assertionsFailed||0) - (agg[a]?.assertionsFailed||0); if (fb!==0) return fb; return (agg[b]?.requests||0) - (agg[a]?.requests||0); }); for(const k of keys.slice(0,10)){ const a=agg[k]; const sc=a.statusCodes||{}; const dist=Object.keys(sc).sort((x,y)=>Number(x)-Number(y)).map(c=>`${c}:${sc[c]}`).join(', '); console.log(`- ${k}: 请求 ${a.requests||0}, 断言 ${a.assertionsFailed||0}/${a.assertionsTotal||0}, 响应时间(p90/max) ${a.responseTime?.p90??'n/a'}/${a.responseTime?.max??'n/a'} ms, 状态码 [${dist}]`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 按路径前缀聚合统计（失败优先，最多 10 条）" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const agg=s.pathAggregates||{}; const keys=Object.keys(agg); keys.sort((a,b)=>{ const fb=(agg[b]?.assertionsFailed||0) - (agg[a]?.assertionsFailed||0); if (fb!==0) return fb; return (agg[b]?.requests||0) - (agg[a]?.requests||0); }); for(const k of keys.slice(0,10)){ const a=agg[k]; const sc=a.statusCodes||{}; const dist=Object.keys(sc).sort((x,y)=>Number(x)-Number(y)).map(c=>`${c}:${sc[c]}`).join(', '); console.log(`- ${k}: 请求 ${a.requests||0}, 断言 ${a.assertionsFailed||0}/${a.assertionsTotal||0}, 响应时间(p90/max) ${a.responseTime?.p90??'n/a'}/${a.responseTime?.max??'n/a'} ms, 状态码 [${dist}]`); }" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### 性能预算检查" >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./reports/newman-summary.json'); const cfg=s.budgets?.config||{}; const breaches=s.budgetBreaches||[]; const path=s.budgets?.configPath||'(n/a)'; const enabled=!!cfg.failOnBudgetBreach; console.log(`- 配置文件: ${path}`); console.log(`- gating 开关: ${enabled?'开启':'关闭'}`); if(breaches.length===0){ console.log('- 未发现预算超标'); } else { for(const b of breaches){ console.log(`- [${b.scope}] ${b.key} ${b.point}: ${b.actual}ms > 阈值 ${b.threshold}ms`); } }" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 未生成摘要 JSON（请检查脚本）" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  insomnia_inso:
+    name: Insomnia (inso via Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Start mock server
+        run: |
+          node docs/07-部署与运维/ci/mock_server.js &
+          sleep 2
+
+      - name: Prepare reports directory
+        run: |
+          mkdir -p reports
+
+      - name: Pull Inso CLI Docker image
+        run: |
+          docker pull kong/inso:latest
+
+      - name: Run Insomnia collection (capture log)
+        run: |
+          docker run --rm -v "$PWD":/work kong/inso:latest \
+            run collection "客户端错误处理与链路追踪套件" \
+            --src /work/docs/09-API文档/client-kits/insomnia_workspace.json \
+            --verbose 2>&1 | tee reports/inso-run.txt
+
+      - name: Upload Insomnia run log
+        uses: actions/upload-artifact@v3
+        with:
+          name: inso-run-log
+          path: reports/inso-run.txt
+
+      - name: Job Summary
+        run: |
+          echo "### Insomnia 集合测试执行" >> $GITHUB_STEP_SUMMARY
+          echo "- 执行日志 Artifact: inso-run-log" >> $GITHUB_STEP_SUMMARY
+          echo "如需设计文档单元测试（inso run test），请在 Insomnia 中补充测试并在工作流中调用。" >> $GITHUB_STEP_SUMMARY
