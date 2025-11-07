@@ -1,0 +1,104 @@
+name: openapi-softcheck
+on:
+  pull_request:
+    paths:
+      - 'docs/09-API文档/API-06-openapi.yaml'
+      - 'scripts/**'
+  push:
+    branches: [ main ]
+
+jobs:
+  soft-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml openapi-spec-validator
+
+      - name: Build artifacts (non-blocking)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from yaml import safe_load
+          import json, pathlib, csv, itertools
+          spec_path = pathlib.Path("docs/09-API文档/API-06-openapi.yaml")
+          data = safe_load(spec_path.read_text(encoding="utf-8"))
+          build = pathlib.Path("build"); build.mkdir(exist_ok=True)
+          (build/"openapi.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          def op_scopes(op, global_sec):
+              s=set()
+              for sec in (op.get("security", global_sec) or []):
+                  for _k, lst in (sec or {}).items():
+                      for i in (lst or []): s.add(i)
+              for i in (op.get("x-scopes") or []): s.add(str(i))
+              return sorted(s)
+
+          paths = data.get("paths", {}) or {}
+          gsec = data.get("security", []) or []
+
+          with (build/"endpoints.csv").open("w", newline="", encoding="utf-8") as f:
+              w=csv.writer(f); w.writerow(["path","method","operationId","tags","summary","scopes"])
+              for p, ms in paths.items():
+                  for m, op in (ms or {}).items():
+                      if m.lower() not in {"get","post","put","patch","delete","options","head","trace"}: continue
+                      w.writerow([p, m.upper(), op.get("operationId",""), ",".join(op.get("tags",[]) or []), op.get("summary",""), ",".join(op_scopes(op,gsec))])
+
+          perm={}
+          for p, ms in paths.items():
+              for m, op in (ms or {}).items():
+                  if m.lower() not in {"get","post","put","patch","delete","options","head","trace"}: continue
+                  rec=(m.upper(), p, op.get("operationId",""), ",".join(op.get("tags",[]) or []))
+                  sc=op_scopes(op,gsec)
+                  if sc:
+                      for s in sc: perm.setdefault(s, []).append(rec)
+                  else:
+                      perm.setdefault("(no-scope)", []).append(rec)
+
+          with (build/"permission_matrix.csv").open("w", newline="", encoding="utf-8") as f:
+              w=csv.writer(f); w.writerow(["scope","method","path","operationId","tags"])
+              for s, recs in sorted(perm.items()):
+                  for m,pp,oid,t in recs: w.writerow([s,m,pp,oid,t])
+
+          pm = (build/"permission_matrix.csv").read_text(encoding="utf-8").splitlines()[1:]
+          no_scope = [r for r in pm if r.startswith("(no-scope),")]
+          print(f"::notice ::OpenAPI artifacts ready: endpoints={sum(1 for _ in (build/'endpoints.csv').read_text(encoding='utf-8').splitlines()[1:])}, no-scope={len(no_scope)}")
+          for row in itertools.islice(no_scope, 5):
+              print(f"::warning ::Missing scope → {row}")
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-artifacts
+          path: build/
+
+      - name: Comment summary to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const ep = fs.readFileSync('build/endpoints.csv','utf8').trim().split('\n').length - 1;
+            const lines = fs.readFileSync('build/permission_matrix.csv','utf8').trim().split('\n');
+            const noScope = lines.slice(1).filter(l=>l.startsWith('(no-scope),')).length;
+            const body = [
+              '### OpenAPI Soft Check（非阻塞）',
+              `- Endpoints: **${ep}**`,
+              `- No-scope: **${noScope}**`,
+              noScope>0 ? '> 提示：不拦截构建，后续可补 `x-scopes` 或 `security`。' : '✅ 当前无缺失 scopes'
+            ].join('\n');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
